@@ -1,9 +1,9 @@
 package community.kotlin.test.quicktest
 
-import java.io.File
+import okio.Path
 
 /** Result of running quick tests. */
-data class TestResult(val file: File, val function: String, val success: Boolean, val error: Throwable?)
+data class TestResult(val file: Path, val function: String, val success: Boolean, val error: Throwable?)
 
 class QuickTestRunResults(val results: List<TestResult>) {
     fun passed(): List<TestResult> = results.filter { it.success }

@@ -4,65 +4,78 @@ import org.jetbrains.kotlin.cli.common.CLICompiler
 import org.jetbrains.kotlin.cli.common.ExitCode
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import org.apache.commons.text.StringEscapeUtils
-import java.io.File
+import okio.FileSystem
+import okio.Path
+import okio.buffer
 
 /** Utility functions for compiling and reporting quick tests. */
 object QuickTestUtils {
-    fun compileQuickTest(src: File, outputDir: File, classpath: String = System.getProperty("java.class.path")) {
-        val tempKt = File(outputDir, src.nameWithoutExtension + ".kt")
-        src.copyTo(tempKt, overwrite = true)
-        val args = arrayOf("-classpath", classpath, "-d", outputDir.absolutePath, tempKt.absolutePath)
+    fun compileQuickTest(srcFs: FileSystem, src: Path, destFs: FileSystem, outputDir: Path, classpath: String = System.getProperty("java.class.path")) {
+        val srcName = src.name.substringBeforeLast('.')
+        val tempKt = outputDir / (srcName + ".kt")
+        destFs.delete(tempKt, mustExist = false)
+        // Copy using java.io for portability
+        val srcFile = srcFs.canonicalize(src).toNioPath().toFile()
+        val outputDirFile = destFs.canonicalize(outputDir).toNioPath().toFile()
+        outputDirFile.mkdirs()
+        val tempKtFile = outputDirFile.resolve(srcName + ".kt")
+        srcFile.copyTo(tempKtFile, overwrite = true)
+        val args = arrayOf(
+            "-classpath", classpath,
+            "-d", outputDirFile.absolutePath,
+            tempKtFile.absolutePath
+        )
         val exit = CLICompiler.doMainNoExit(K2JVMCompiler(), args)
         if (exit != ExitCode.OK) {
-            throw RuntimeException("Compilation failed for ${src.absolutePath}")
+            throw RuntimeException("Compilation failed for ${srcFs.canonicalize(src)}")
         }
     }
 
-    fun writeResults(results: List<TestResult>, logFile: File) {
+    fun writeResults(results: List<TestResult>, fs: FileSystem, logFile: Path) {
         when {
-            logFile.name.endsWith(".xml") -> writeXml(results, logFile)
-            logFile.name.endsWith(".html") -> writeHtml(results, logFile)
-            else -> writePlain(results, logFile)
+            logFile.name.endsWith(".xml") -> writeXml(results, fs, logFile)
+            logFile.name.endsWith(".html") -> writeHtml(results, fs, logFile)
+            else -> writePlain(results, fs, logFile)
         }
     }
 
-    private fun writeXml(results: List<TestResult>, file: File) {
-        file.printWriter().use { out ->
-            out.println("<tests>")
+    private fun writeXml(results: List<TestResult>, fs: FileSystem, file: Path) {
+        fs.sink(file).buffer().use { out ->
+            out.writeUtf8("<tests>\n")
             results.forEach { r ->
                 if (r.success) {
-                    out.println("  <test file=\"${r.file}\" name=\"${r.function}\" success=\"true\"/>")
+                    out.writeUtf8("  <test file=\"${r.file}\" name=\"${r.function}\" success=\"true\"/>\n")
                 } else {
                     val stack = r.error?.stackTraceToString()?.xmlEscape()
-                    out.println("  <test file=\"${r.file}\" name=\"${r.function}\" success=\"false\">")
-                    out.println("    <stacktrace>${stack}</stacktrace>")
-                    out.println("  </test>")
+                    out.writeUtf8("  <test file=\"${r.file}\" name=\"${r.function}\" success=\"false\">\n")
+                    out.writeUtf8("    <stacktrace>${stack}</stacktrace>\n")
+                    out.writeUtf8("  </test>\n")
                 }
             }
-            out.println("</tests>")
+            out.writeUtf8("</tests>\n")
         }
     }
 
-    private fun writeHtml(results: List<TestResult>, file: File) {
-        file.printWriter().use { out ->
-            out.println("<html><body><table>")
-            out.println("<tr><th>File</th><th>Function</th><th>Status</th><th>Stacktrace</th></tr>")
+    private fun writeHtml(results: List<TestResult>, fs: FileSystem, file: Path) {
+        fs.sink(file).buffer().use { out ->
+            out.writeUtf8("<html><body><table>\n")
+            out.writeUtf8("<tr><th>File</th><th>Function</th><th>Status</th><th>Stacktrace</th></tr>\n")
             results.forEach { r ->
                 val stack = if (r.success) "" else r.error?.stackTraceToString()?.htmlEscape()
-                out.println("<tr><td>${r.file}</td><td>${r.function}</td><td>${if (r.success) "PASSED" else "FAILED"}</td><td><pre>${stack}</pre></td></tr>")
+                out.writeUtf8("<tr><td>${r.file}</td><td>${r.function}</td><td>${if (r.success) "PASSED" else "FAILED"}</td><td><pre>${stack}</pre></td></tr>\n")
             }
-            out.println("</table></body></html>")
+            out.writeUtf8("</table></body></html>\n")
         }
     }
 
-    private fun writePlain(results: List<TestResult>, file: File) {
-        file.printWriter().use { out ->
+    private fun writePlain(results: List<TestResult>, fs: FileSystem, file: Path) {
+        fs.sink(file).buffer().use { out ->
             results.forEach { r ->
                 if (r.success) {
-                    out.println("PASSED ${r.file}:${r.function}")
+                    out.writeUtf8("PASSED ${r.file}:${r.function}\n")
                 } else {
-                    out.println("FAILED ${r.file}:${r.function}")
-                    r.error?.stackTraceToString()?.let { out.println(it) }
+                    out.writeUtf8("FAILED ${r.file}:${r.function}\n")
+                    r.error?.stackTraceToString()?.let { out.writeUtf8(it + "\n") }
                 }
             }
         }
