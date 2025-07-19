@@ -2,7 +2,7 @@ plugins {
     kotlin("jvm") version "2.2.0"
 }
 
-group = "org.example"
+group = "community.kotlin.test.quicktest"
 version = "1.0-SNAPSHOT"
 
 repositories {

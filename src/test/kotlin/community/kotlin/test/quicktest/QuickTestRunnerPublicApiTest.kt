@@ -1,12 +1,11 @@
-package org.example
+package community.kotlin.test.quicktest
 
 import kotlin.test.*
 import java.io.File
 
-class QuickTestRunnerTest {
-
+class QuickTestRunnerPublicApiTest {
     @Test
-    fun runnerExecutesTests() {
+    fun builderExecutesTests() {
         val dir = createTempDir(prefix = "qtr")
         val testFile = File(dir, "quicktest.kts")
         testFile.writeText(
@@ -16,16 +15,16 @@ class QuickTestRunnerTest {
             """.trimIndent()
         )
 
-        val results = runTests(dir)
-        assertEquals(2, results.size)
-        val pass = results.first { it.function == "passing" }
-        val fail = results.first { it.function == "failing" }
+        val results = QuickTestRunBuilder().directory(dir).run()
+        assertEquals(2, results.results.size)
+        val pass = results.results.first { it.function == "passing" }
+        val fail = results.results.first { it.function == "failing" }
         assertTrue(pass.success)
         assertFalse(fail.success)
     }
 
     @Test
-    fun writeResultsXmlAndHtml() {
+    fun logFilesAreWritten() {
         val dir = createTempDir(prefix = "qtr")
         val testFile = File(dir, "quicktest.kts")
         testFile.writeText(
@@ -35,15 +34,13 @@ class QuickTestRunnerTest {
             """.trimIndent()
         )
 
-        val results = runTests(dir)
-
         val xmlLog = File(dir, "log.xml")
-        writeResults(results, xmlLog)
+        QuickTestRunBuilder().directory(dir).logFile(xmlLog).run()
         val xmlContent = xmlLog.readText()
         assertTrue(xmlContent.contains("<test") && xmlContent.contains("stacktrace"))
 
         val htmlLog = File(dir, "log.html")
-        writeResults(results, htmlLog)
+        QuickTestRunBuilder().directory(dir).logFile(htmlLog).run()
         val htmlContent = htmlLog.readText()
         assertTrue(htmlContent.contains("<table>") && htmlContent.contains("RuntimeException"))
     }
