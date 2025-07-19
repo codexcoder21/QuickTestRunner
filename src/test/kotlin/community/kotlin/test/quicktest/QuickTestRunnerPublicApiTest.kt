@@ -2,6 +2,8 @@ package community.kotlin.test.quicktest
 
 import kotlin.test.*
 import java.io.File
+import okio.FileSystem
+import okio.Path.Companion.toOkioPath
 
 class QuickTestRunnerPublicApiTest {
     @Test
@@ -56,7 +58,7 @@ class QuickTestRunnerPublicApiTest {
             """.trimIndent()
         )
         val outDir = File(libDir, "out").apply { mkdirs() }
-        QuickTestUtils.compileQuickTest(srcFile, outDir)
+        QuickTestUtils.compileQuickTest(FileSystem.SYSTEM, srcFile.toPath().toOkioPath(), FileSystem.SYSTEM, outDir.toPath().toOkioPath())
         val jarFile = File(libDir, "helper.jar")
         java.util.jar.JarOutputStream(jarFile.outputStream()).use { jar ->
             outDir.walkTopDown().filter { it.isFile && it.extension == "class" }.forEach { cl ->
