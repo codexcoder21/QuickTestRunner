@@ -24,6 +24,10 @@ tasks.test {
     dependsOn(fatJar)
 }
 
+tasks.named<Jar>("jar") {
+    from("README.md")
+}
+
 application {
     mainClass.set("community.kotlin.test.quicktest.QuickTestRunner")
 }
@@ -35,6 +39,7 @@ val fatJar by tasks.registering(Jar::class) {
         attributes["Main-Class"] = "community.kotlin.test.quicktest.QuickTestRunner"
     }
     from(sourceSets.main.get().output)
+    from("README.md")
     dependsOn(configurations.runtimeClasspath)
     from({
         configurations.runtimeClasspath.get().filter { it.name.endsWith(".jar") }.map { zipTree(it) }

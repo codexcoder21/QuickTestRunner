@@ -17,9 +17,10 @@ class ExtraClasspathTest {
             fun divTest() { kotlin.test.assertEquals(2, MathOps.divide(6,3)) }
             """.trimIndent()
         )
+        val cp = System.getProperty("java.class.path") + File.pathSeparator + jar.absolutePath
         val results = QuickTestRunner()
             .directory(dir)
-            .classpath(jar.absolutePath)
+            .classpath(cp)
             .run()
         assertTrue(results.failed().isEmpty(), "All tests should pass")
     }
