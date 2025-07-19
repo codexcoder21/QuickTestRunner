@@ -34,10 +34,10 @@ class QuickTestRunner {
             val cmd = DefaultParser().parse(options, args)
             val dirPath = cmd.getOptionValue("directory", ".")
             val logPath = cmd.getOptionValue("log")
-            val cpArg = cmd.getOptionValue("classpath")
+            val cp = cmd.getOptionValue("classpath")
             val runner = QuickTestRunner().directory(File(dirPath))
             if (logPath != null) runner.logFile(File(logPath))
-            if (cpArg != null) runner.classpath(cpArg)
+            if (cp != null) runner.classpath(cp)
             val results = runner.run()
             results.results.forEach { result ->
                 if (result.success) {
@@ -52,15 +52,14 @@ class QuickTestRunner {
             val results = mutableListOf<TestResult>()
             root.walkTopDown().filter { it.name == "quicktest.kts" }.forEach { file ->
                 val outputDir = Files.createTempDirectory("qtcompile").toFile()
-                QuickTestUtils.compileQuickTest(file, outputDir, classpath)
+                val cp = classpath ?: System.getProperty("java.class.path")
+                QuickTestUtils.compileQuickTest(file, outputDir, cp)
                 val className = file.nameWithoutExtension.replaceFirstChar { it.uppercase() } + "Kt"
-                val urls = mutableListOf(outputDir.toURI().toURL())
-                if (!classpath.isNullOrBlank()) {
-                    classpath.split(File.pathSeparator).filter { it.isNotBlank() }.forEach {
-                        urls += File(it).toURI().toURL()
-                    }
-                }
-                val loader = URLClassLoader(urls.toTypedArray(), ClassLoader.getSystemClassLoader())
+                val cpUrls = cp.split(File.pathSeparator)
+                    .filter { it.isNotBlank() }
+                    .map { File(it).toURI().toURL() }
+                val loaderUrls = arrayOf(outputDir.toURI().toURL()) + cpUrls
+                val loader = URLClassLoader(loaderUrls, ClassLoader.getSystemClassLoader())
                 val clazz = loader.loadClass(className)
                 clazz.declaredMethods.filter { it.parameterCount == 0 }.forEach { method ->
                     try {

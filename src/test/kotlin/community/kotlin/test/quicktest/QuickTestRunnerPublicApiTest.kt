@@ -44,4 +44,41 @@ class QuickTestRunnerPublicApiTest {
         val htmlContent = htmlLog.readText()
         assertTrue(htmlContent.contains("<table>") && htmlContent.contains("RuntimeException"))
     }
+
+    @Test
+    fun customClasspathIsUsed() {
+        val libDir = createTempDir(prefix = "lib")
+        val srcFile = File(libDir, "Helper.kts")
+        srcFile.writeText(
+            """
+            package helper
+            object Helper { fun value() = 42 }
+            """.trimIndent()
+        )
+        val outDir = File(libDir, "out").apply { mkdirs() }
+        QuickTestUtils.compileQuickTest(srcFile, outDir)
+        val jarFile = File(libDir, "helper.jar")
+        java.util.jar.JarOutputStream(jarFile.outputStream()).use { jar ->
+            outDir.walkTopDown().filter { it.isFile && it.extension == "class" }.forEach { cl ->
+                val name = outDir.toPath().relativize(cl.toPath()).toString().replace(File.separatorChar, '/')
+                jar.putNextEntry(java.util.jar.JarEntry(name))
+                cl.inputStream().copyTo(jar)
+                jar.closeEntry()
+            }
+        }
+
+        val testDir = createTempDir(prefix = "qtr")
+        val testFile = File(testDir, "quicktest.kts")
+        testFile.writeText(
+            """
+            import helper.Helper
+            fun usesHelper() { if (Helper.value() != 42) throw RuntimeException("bad") }
+            """.trimIndent()
+        )
+
+        val cp = System.getProperty("java.class.path") + File.pathSeparator + jarFile.absolutePath
+        val results = QuickTestRunner().directory(testDir).classpath(cp).run()
+        assertEquals(1, results.results.size)
+        assertTrue(results.results.first().success)
+    }
 }
