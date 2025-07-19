@@ -23,4 +23,28 @@ class QuickTestRunnerTest {
         assertTrue(pass.success)
         assertFalse(fail.success)
     }
+
+    @Test
+    fun writeResultsXmlAndHtml() {
+        val dir = createTempDir(prefix = "qtr")
+        val testFile = File(dir, "quicktest.kts")
+        testFile.writeText(
+            """
+            fun passing() {}
+            fun failing() { throw RuntimeException("boom") }
+            """.trimIndent()
+        )
+
+        val results = runTests(dir)
+
+        val xmlLog = File(dir, "log.xml")
+        writeResults(results, xmlLog)
+        val xmlContent = xmlLog.readText()
+        assertTrue(xmlContent.contains("<test") && xmlContent.contains("stacktrace"))
+
+        val htmlLog = File(dir, "log.html")
+        writeResults(results, htmlLog)
+        val htmlContent = htmlLog.readText()
+        assertTrue(htmlContent.contains("<table>") && htmlContent.contains("RuntimeException"))
+    }
 }
