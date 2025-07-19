@@ -22,10 +22,10 @@ throwing an exception.
 
 ### Programmatic usage
 
-You can also run tests directly from Kotlin code using `QuickTestRunBuilder`:
+You can also run tests directly from Kotlin code using `QuickTestRunner`:
 
 ```
-val results = QuickTestRunBuilder()
+val results = QuickTestRunner()
     .directory(File("path/to/tests"))
     .logFile(File("results.xml"))
     .run()
