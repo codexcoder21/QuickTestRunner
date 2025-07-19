@@ -20,6 +20,19 @@ The program recursively searches the provided directory for every `quicktest.kts
 compiles them and runs all top level functions. A test passes if it completes without
 throwing an exception.
 
+### Programmatic usage
+
+You can also run tests directly from Kotlin code using `QuickTestRunBuilder`:
+
+```
+val results = QuickTestRunBuilder()
+    .directory(File("path/to/tests"))
+    .logFile(File("results.xml"))
+    .run()
+```
+
+`QuickTestRunResults` provides access to the individual `TestResult` entries.
+
 ## Building and testing
 
 Run the following command to build the project and execute unit tests:
