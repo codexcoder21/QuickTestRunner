@@ -29,7 +29,7 @@ class QuickTestRunner {
             val options = Options().apply {
                 addOption(Option.builder().longOpt("directory").hasArg().desc("Directory to scan").build())
                 addOption(Option.builder().longOpt("log").hasArg().desc("Log file to dump results").build())
-                addOption(Option.builder().longOpt("classpath").hasArg().desc("Classpath for compiling tests").build())
+                addOption(Option.builder().longOpt("classpath").hasArg().desc("Extra classpath for compiling and running tests").build())
             }
             val cmd = DefaultParser().parse(options, args)
             val dirPath = cmd.getOptionValue("directory", ".")

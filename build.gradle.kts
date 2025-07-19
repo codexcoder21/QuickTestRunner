@@ -15,6 +15,7 @@ dependencies {
     implementation("commons-cli:commons-cli:1.5.0")
     implementation("org.apache.commons:commons-text:1.10.0")
     testImplementation(kotlin("test"))
+    testImplementation("org.eclipse.jdt:ecj:3.33.0")
 }
 
 tasks.test {
@@ -23,14 +24,14 @@ tasks.test {
 }
 
 application {
-    mainClass.set("org.example.MainKt")
+    mainClass.set("community.kotlin.test.quicktest.QuickTestRunner")
 }
 
 val fatJar by tasks.registering(Jar::class) {
     archiveClassifier.set("all")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     manifest {
-        attributes["Main-Class"] = "org.example.MainKt"
+        attributes["Main-Class"] = "community.kotlin.test.quicktest.QuickTestRunner"
     }
     from(sourceSets.main.get().output)
     dependsOn(configurations.runtimeClasspath)
