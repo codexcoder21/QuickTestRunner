@@ -3,6 +3,7 @@ package community.kotlin.test.quicktest
 import org.jetbrains.kotlin.cli.common.CLICompiler
 import org.jetbrains.kotlin.cli.common.ExitCode
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
+import org.apache.commons.text.StringEscapeUtils
 import java.io.File
 
 /** Utility functions for compiling and reporting quick tests. */
@@ -69,8 +70,8 @@ object QuickTestUtils {
     }
 
     private fun String.xmlEscape(): String =
-        this.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        StringEscapeUtils.escapeXml11(this)
 
     private fun String.htmlEscape(): String =
-        this.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        StringEscapeUtils.escapeHtml4(this)
 }
