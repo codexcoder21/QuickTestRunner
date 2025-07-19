@@ -8,10 +8,16 @@ import java.io.File
 
 /** Utility functions for compiling and reporting quick tests. */
 object QuickTestUtils {
-    fun compileQuickTest(src: File, outputDir: File) {
+    fun compileQuickTest(src: File, outputDir: File, classpath: String? = null) {
         val tempKt = File(outputDir, src.nameWithoutExtension + ".kt")
         src.copyTo(tempKt, overwrite = true)
-        val cp = System.getProperty("java.class.path")
+        val cp = buildString {
+            append(System.getProperty("java.class.path"))
+            if (!classpath.isNullOrBlank()) {
+                append(File.pathSeparator)
+                append(classpath)
+            }
+        }
         val args = arrayOf("-classpath", cp, "-d", outputDir.absolutePath, tempKt.absolutePath)
         val exit = CLICompiler.doMainNoExit(K2JVMCompiler(), args)
         if (exit != ExitCode.OK) {
