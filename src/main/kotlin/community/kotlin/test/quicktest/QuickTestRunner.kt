@@ -11,12 +11,14 @@ import java.nio.file.Files
 class QuickTestRunner {
     private var directory: File = File(".")
     private var logFile: File? = null
+    private var classpath: String? = null
 
     fun directory(dir: File): QuickTestRunner = apply { this.directory = dir }
     fun logFile(file: File): QuickTestRunner = apply { this.logFile = file }
+    fun classpath(cp: String): QuickTestRunner = apply { this.classpath = cp }
 
     fun run(): QuickTestRunResults {
-        val results = runTests(directory)
+        val results = runTests(directory, classpath)
         logFile?.let { QuickTestUtils.writeResults(results, it) }
         return QuickTestRunResults(results)
     }
@@ -27,12 +29,15 @@ class QuickTestRunner {
             val options = Options().apply {
                 addOption(Option.builder().longOpt("directory").hasArg().desc("Directory to scan").build())
                 addOption(Option.builder().longOpt("log").hasArg().desc("Log file to dump results").build())
+                addOption(Option.builder().longOpt("classpath").hasArg().desc("Classpath for compiling tests").build())
             }
             val cmd = DefaultParser().parse(options, args)
             val dirPath = cmd.getOptionValue("directory", ".")
             val logPath = cmd.getOptionValue("log")
+            val cp = cmd.getOptionValue("classpath")
             val runner = QuickTestRunner().directory(File(dirPath))
             if (logPath != null) runner.logFile(File(logPath))
+            if (cp != null) runner.classpath(cp)
             val results = runner.run()
             results.results.forEach { result ->
                 if (result.success) {
@@ -43,13 +48,18 @@ class QuickTestRunner {
             }
         }
 
-        internal fun runTests(root: File): List<TestResult> {
+        internal fun runTests(root: File, classpath: String? = null): List<TestResult> {
             val results = mutableListOf<TestResult>()
             root.walkTopDown().filter { it.name == "quicktest.kts" }.forEach { file ->
                 val outputDir = Files.createTempDirectory("qtcompile").toFile()
-                QuickTestUtils.compileQuickTest(file, outputDir)
+                val cp = classpath ?: System.getProperty("java.class.path")
+                QuickTestUtils.compileQuickTest(file, outputDir, cp)
                 val className = file.nameWithoutExtension.replaceFirstChar { it.uppercase() } + "Kt"
-                val loader = URLClassLoader(arrayOf(outputDir.toURI().toURL()), ClassLoader.getSystemClassLoader())
+                val cpUrls = cp.split(File.pathSeparator)
+                    .filter { it.isNotBlank() }
+                    .map { File(it).toURI().toURL() }
+                val loaderUrls = arrayOf(outputDir.toURI().toURL()) + cpUrls
+                val loader = URLClassLoader(loaderUrls, ClassLoader.getSystemClassLoader())
                 val clazz = loader.loadClass(className)
                 clazz.declaredMethods.filter { it.parameterCount == 0 }.forEach { method ->
                     try {

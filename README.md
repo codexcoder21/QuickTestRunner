@@ -10,7 +10,7 @@ frameworks are used.
 ## Usage
 
 ```
-./gradlew run --args='--directory path/to/search --log results.xml'
+./gradlew run --args='--directory path/to/search --log results.xml --classpath "lib/dependency.jar"'
 ```
 
 If the log file ends with `.xml` an XML report is created. If it ends with `.html`,
@@ -28,6 +28,7 @@ You can also run tests directly from Kotlin code using `QuickTestRunner`:
 val results = QuickTestRunner()
     .directory(File("path/to/tests"))
     .logFile(File("results.xml"))
+    .classpath("lib/dependency.jar")
     .run()
 ```
 
