@@ -21,9 +21,9 @@ fun main(args: Array<String>) {
     val results = runTests(File(dirPath))
     results.forEach { result ->
         if (result.success) {
-            println("PASSED ${'$'}{result.file}:${'$'}{result.function}")
+            println("PASSED ${result.file}:${result.function}")
         } else {
-            println("FAILED ${'$'}{result.file}:${'$'}{result.function} -> ${'$'}{result.error?.message}")
+            println("FAILED ${result.file}:${result.function} -> ${result.error?.message}")
         }
     }
 }
