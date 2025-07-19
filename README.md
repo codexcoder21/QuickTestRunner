@@ -10,8 +10,11 @@ frameworks are used.
 ## Usage
 
 ```
-./gradlew run --args='--directory path/to/search'
+./gradlew run --args='--directory path/to/search --log results.xml'
 ```
+
+If the log file ends with `.xml` an XML report is created. If it ends with `.html`,
+the report will be an HTML file.
 
 The program recursively searches the provided directory for every `quicktest.kts` file,
 compiles them and runs all top level functions. A test passes if it completes without
