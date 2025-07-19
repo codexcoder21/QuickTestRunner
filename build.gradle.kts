@@ -10,6 +10,8 @@ repositories {
 }
 
 dependencies {
+    implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:2.1.21")
+    implementation("commons-cli:commons-cli:1.5.0")
     testImplementation(kotlin("test"))
 }
 
