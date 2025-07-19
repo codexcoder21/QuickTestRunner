@@ -9,6 +9,8 @@ frameworks are used.
 
 ## Usage
 
+### Using Gradle
+
 ```
 ./gradlew run --args='--directory path/to/search --log results.xml --classpath "lib/dependency.jar"'
 ```
@@ -20,16 +22,38 @@ The program recursively searches the provided directory for every `quicktest.kts
 compiles them and runs all top level functions. A test passes if it completes without
 throwing an exception.
 
+### Using the fat jar
+
+First build the fat jar:
+
+```
+./gradlew fatJar
+```
+
+Then execute it directly with the same command line options:
+
+```
+java -jar build/libs/QuickTestRunner-1.0-SNAPSHOT-all.jar --directory path/to/search --log results.xml
+```
+
 ### Programmatic usage
 
 You can also run tests directly from Kotlin code using `QuickTestRunner`:
 
-```
+```kotlin
+import community.kotlin.test.quicktest.QuickTestRunner
+import java.io.File
+
 val results = QuickTestRunner()
     .directory(File("path/to/tests"))
     .logFile(File("results.xml"))
     .classpath("lib/dependency.jar")
     .run()
+
+results.results.forEach { r ->
+    val status = if (r.success) "PASSED" else "FAILED"
+    println("$status ${r.file}:${r.function}")
+}
 ```
 
 `QuickTestRunResults` provides access to the individual `TestResult` entries.
