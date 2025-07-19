@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "2.1.21"
+    kotlin("jvm") version "2.2.0"
 }
 
 group = "org.example"
@@ -10,7 +10,7 @@ repositories {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:2.1.21")
+    implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:2.2.0")
     implementation("commons-cli:commons-cli:1.5.0")
     testImplementation(kotlin("test"))
 }
