@@ -9,6 +9,8 @@ frameworks are used.
 
 ## Usage
 
+Run `--help` to see all available command line options.
+
 ### Using Gradle
 
 ```

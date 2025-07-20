@@ -48,11 +48,19 @@ class QuickTestRunner {
         @JvmStatic
         fun main(args: Array<String>) {
             val options = Options().apply {
+                addOption(Option.builder("h")
+                    .longOpt("help")
+                    .desc("Print this help message")
+                    .build())
                 addOption(Option.builder().longOpt("directory").hasArg().desc("Directory to scan").build())
                 addOption(Option.builder().longOpt("log").hasArg().desc("Log file to dump results").build())
                 addOption(Option.builder().longOpt("classpath").hasArg().desc("Extra classpath for compiling and running tests").build())
             }
             val cmd = DefaultParser().parse(options, args)
+            if (cmd.hasOption("help")) {
+                org.apache.commons.cli.HelpFormatter().printHelp("QuickTestRunner", options)
+                return
+            }
             val dirPath = cmd.getOptionValue("directory", ".")
             val logPath = cmd.getOptionValue("log")
             val cp = cmd.getOptionValue("classpath")
