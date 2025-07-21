@@ -21,6 +21,7 @@ class HelpOptionTest {
 
         assertEquals(0, exit)
         assertTrue(cleaned.contains("usage"), "Should print usage header")
-        assertTrue(cleaned.contains("--directory"), "Should mention directory option")
+        assertTrue(cleaned.contains("--log"), "Should mention log option")
+        assertTrue(cleaned.contains("--workspace"), "Should mention workspace option")
     }
 }
