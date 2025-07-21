@@ -12,7 +12,7 @@ class ExampleProjectTest {
         val results = QuickTestRunner()
             .workspace(root)
             .run()
-        assertEquals(2, results.results.size)
+        assertEquals(3, results.results.size)
         assertTrue(results.failed().isEmpty(), "All quick tests should pass")
     }
 }

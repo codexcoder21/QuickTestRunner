@@ -12,6 +12,8 @@ import org.apache.commons.cli.Options
 import java.io.File
 import java.net.URLClassLoader
 import java.nio.file.Files
+import coursierapi.Dependency
+import coursierapi.Fetch
 import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toOkioPath
@@ -89,7 +91,7 @@ class QuickTestRunner {
                 }
                 val buildRules = getBuildRules(file)
 
-                val cpFiles = buildRules.map { buildRule ->
+                val cpFiles = buildRules.flatMap { buildRule ->
                     val wsRoot = workspaceFs.canonicalize(workspaceRoot).toFile()
                     runBuildRule(wsRoot, buildRule)
                 } + System.getProperty("java.class.path")  // TODO: Should not be passing in system/parent classpath once we can import artifacts via maven.
@@ -132,7 +134,14 @@ private fun getBuildRules(file: File): List<String> {
     }
 }
 
-private fun runBuildRule(workspaceDir: File, rule: String): File {
+private fun runBuildRule(workspaceDir: File, rule: String): List<File> {
+    val mavenPattern = Regex("^[^:]+:[^:]+:[^:]+$")
+    if (mavenPattern.matches(rule)) {
+        val parts = rule.split(":")
+        val dep = Dependency.of(parts[0], parts[1], parts[2])
+        return Fetch.create().addDependencies(dep).fetch()
+    }
+
     val workspace = Workspace(workspaceDir)
     val out = kotlin.io.path.createTempFile("qtbuild", null).toFile().apply { delete() }
     Effective {
@@ -147,7 +156,7 @@ private fun runBuildRule(workspaceDir: File, rule: String): File {
     if (resultFile.isDirectory) {
         val jar = resultFile.walkTopDown().firstOrNull { it.isFile && it.name.endsWith(".jar") }
             ?: throw IllegalStateException("No jar produced by build rule $rule")
-        return jar
+        return listOf(jar)
     }
-    return resultFile
+    return listOf(resultFile)
 }
