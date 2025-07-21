@@ -11,12 +11,5 @@ fun QuickTestRunner.directory(dir: File): QuickTestRunner =
 fun QuickTestRunner.logFile(file: File): QuickTestRunner =
     logFile(FileSystem.SYSTEM, file.toPath().toOkioPath())
 
-fun QuickTestRunner.classpath(vararg files: File): QuickTestRunner =
-    classpath(FileSystem.SYSTEM, *files.map { it.toPath().toOkioPath() }.toTypedArray())
-
-fun QuickTestRunner.classpath(cp: String): QuickTestRunner {
-    val paths = cp.split(File.pathSeparator)
-        .filter { it.isNotBlank() }
-        .map { File(it).toPath().toOkioPath() }
-    return classpath(FileSystem.SYSTEM, *paths.toTypedArray())
-}
+fun QuickTestRunner.workspace(dir: File): QuickTestRunner =
+    workspace(FileSystem.SYSTEM, dir.toPath().toOkioPath())

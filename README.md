@@ -14,7 +14,7 @@ Run `--help` to see all available command line options.
 ### Using Gradle
 
 ```
-./gradlew run --args='--directory path/to/search --log results.xml --classpath "lib/dependency.jar"'
+./gradlew run --args='--directory path/to/search --workspace path/to/workspace --log results.xml'
 ```
 
 If the log file ends with `.xml` an XML report is created. If it ends with `.html`,
@@ -35,7 +35,7 @@ First build the fat jar:
 Then execute it directly with the same command line options:
 
 ```
-java -jar build/libs/QuickTestRunner-1.0-SNAPSHOT-all.jar --directory path/to/search --log results.xml
+java -jar build/libs/QuickTestRunner-1.0-SNAPSHOT-all.jar --directory path/to/search --workspace path/to/workspace --log results.xml
 ```
 
 ### Programmatic usage
@@ -48,8 +48,8 @@ import java.io.File
 
 val results = QuickTestRunner()
     .directory(File("path/to/tests"))
+    .workspace(File("path/to/workspace"))
     .logFile(File("results.xml"))
-    .classpath("lib/dependency.jar")
     .run()
 
 results.results.forEach { r ->

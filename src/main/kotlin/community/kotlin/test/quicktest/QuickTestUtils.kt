@@ -26,7 +26,7 @@ object QuickTestUtils {
         val messageRenderer = MessageRenderer.PLAIN_RELATIVE_PATHS
         val arguments = compiler.createArguments()
         arguments.noStdlib = true
-        arguments.useIR = true
+        arguments.useK2 = false
         arguments.includeRuntime = false
         arguments.classpath = classpath.map { it.absolutePath }.joinToString(":")
         arguments.jvmTarget = "1.8"
@@ -50,6 +50,10 @@ object QuickTestUtils {
         } finally {
             errStream.print(messageRenderer.renderConclusion())
         }
+    }
+
+    fun compileTests(ktFiles: List<File>, classpath: List<File>, destination: File) {
+        compileKotlin(ktFiles, classpath, destination)
     }
 
 
