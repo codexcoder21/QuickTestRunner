@@ -10,6 +10,7 @@ import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toOkioPath
 import okio.Path.Companion.toPath
+import okio.buffer
 
 /** Entry point and core runner for quick tests. */
 class QuickTestRunner {
@@ -21,6 +22,9 @@ class QuickTestRunner {
 
     private var cpFs: FileSystem = FileSystem.SYSTEM
     private var classpath: List<Path>? = null
+
+    private var workspaceFs: FileSystem = FileSystem.SYSTEM
+    private var workspace: Path = ".".toPath()
 
     fun directory(fs: FileSystem, dir: Path): QuickTestRunner = apply {
         dirFs = fs
@@ -35,6 +39,11 @@ class QuickTestRunner {
     fun classpath(fs: FileSystem, vararg cp: Path): QuickTestRunner = apply {
         cpFs = fs
         classpath = cp.toList()
+    }
+
+    fun workspace(fs: FileSystem, dir: Path): QuickTestRunner = apply {
+        workspaceFs = fs
+        workspace = dir
     }
 
     fun run(): QuickTestRunResults {
@@ -55,6 +64,7 @@ class QuickTestRunner {
                 addOption(Option.builder().longOpt("directory").hasArg().desc("Directory to scan").build())
                 addOption(Option.builder().longOpt("log").hasArg().desc("Log file to dump results").build())
                 addOption(Option.builder().longOpt("classpath").hasArg().desc("Extra classpath for compiling and running tests").build())
+                addOption(Option.builder().longOpt("workspace").hasArg().desc("Workspace root directory").build())
             }
             val cmd = DefaultParser().parse(options, args)
             if (cmd.hasOption("help")) {
@@ -64,7 +74,8 @@ class QuickTestRunner {
             val dirPath = cmd.getOptionValue("directory", ".")
             val logPath = cmd.getOptionValue("log")
             val cp = cmd.getOptionValue("classpath")
-            val runner = QuickTestRunner().directory(File(dirPath))
+            val workspacePath = cmd.getOptionValue("workspace", ".")
+            val runner = QuickTestRunner().directory(File(dirPath)).workspace(File(workspacePath))
             if (logPath != null) runner.logFile(File(logPath))
             if (cp != null) runner.classpath(cp)
             val results = runner.run()
@@ -84,7 +95,17 @@ class QuickTestRunner {
                 val outputDir = tempDir.toOkioPath()
                 val classpathStr = cp?.joinToString(File.pathSeparator) { cpFs.canonicalize(it).toString() }
                     ?: System.getProperty("java.class.path")
-                // TODO: Do compile of the quicktest.kts file using classpath (see `compileKotlin` function).  Make sure quicktest.kts gets a name ending in `.kt` before compiling, to avoid bugs with kts files.
+
+                val ktPath = tempDir.resolve(file.name.substringBeforeLast('.') + ".kt")
+                dirFs.source(file).use { src ->
+                    FileSystem.SYSTEM.sink(ktPath.toOkioPath()).buffer().use { out ->
+                        out.writeAll(src)
+                    }
+                }
+                val cpFiles = classpathStr.split(File.pathSeparator)
+                    .filter { it.isNotBlank() }
+                    .map { File(it) }
+                QuickTestUtils.compileKotlin(listOf(ktPath.toFile()), cpFiles, outputDir.toNioPath().toFile())
                 val className = file.name.substringBeforeLast('.').replaceFirstChar { it.uppercase() } + "Kt"
                 val cpUrls = classpathStr.split(File.pathSeparator)
                     .filter { it.isNotBlank() }
