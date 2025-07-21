@@ -67,3 +67,12 @@ Run the following command to build the project and execute unit tests:
 ```
 ./gradlew test
 ```
+
+## Annotation example
+
+Run PrintAnnotations to list file annotations:
+
+```
+./gradlew run -PmainClass=community.kotlin.test.quicktest.PrintAnnotations --args="Example.kts"
+```
+
