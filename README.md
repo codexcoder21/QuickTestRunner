@@ -72,17 +72,4 @@ Run the following command to build the project and execute unit tests:
 ## TODO:
 * Should not be passing in system/parent classpath once we can import artifacts via maven.
 * Should use a filtering classloader to make child builds isolated from the ktest program.
-* Apparently println doesn't work inside quicktest.kts and needs to be System.out.println, figure out why:
-
-```kotlin
---- a/src/test/resources/ExampleTestProjectWithBuildScriptAndTests/quicktest.kts
-+++ b/src/test/resources/ExampleTestProjectWithBuildScriptAndTests/quicktest.kts
-@@ -11,5 +11,5 @@ fun subTest() { if(subtract(2,3) != -1) throw Error("Subtraction broken") }
- 
- fun jsoupTest() {
-     val doc = Jsoup.parse("<p>Hello</p>")
--    println(doc.text())
-+    System.out.println(doc.text())
- }
-```
 
