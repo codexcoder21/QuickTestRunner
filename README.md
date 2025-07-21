@@ -14,7 +14,7 @@ Run `--help` to see all available command line options.
 ### Using Gradle
 
 ```
-./gradlew run --args='--directory path/to/search --log results.xml --classpath "lib/dependency.jar"'
+./gradlew run --args='--directory path/to/search --log results.xml'
 ```
 
 If the log file ends with `.xml` an XML report is created. If it ends with `.html`,
@@ -22,7 +22,10 @@ the report will be an HTML file.
 
 The program recursively searches the provided directory for every `quicktest.kts` file,
 compiles them and runs all top level functions. A test passes if it completes without
-throwing an exception.
+throwing an exception. Each `quicktest.kts` file can declare dependencies using
+`@file:DependsOn("rule")`. The string `rule` should point to a jar file (or build rule
+that produces one) which will be added to the classpath when compiling and running
+the test file.
 
 ### Using the fat jar
 
@@ -49,7 +52,6 @@ import java.io.File
 val results = QuickTestRunner()
     .directory(File("path/to/tests"))
     .logFile(File("results.xml"))
-    .classpath("lib/dependency.jar")
     .run()
 
 results.results.forEach { r ->

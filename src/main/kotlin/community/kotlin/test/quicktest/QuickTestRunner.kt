@@ -19,9 +19,6 @@ class QuickTestRunner {
     private var logFs: FileSystem = FileSystem.SYSTEM
     private var logFile: Path? = null
 
-    private var cpFs: FileSystem = FileSystem.SYSTEM
-    private var classpath: List<Path>? = null
-
     fun directory(fs: FileSystem, dir: Path): QuickTestRunner = apply {
         dirFs = fs
         directory = dir
@@ -32,13 +29,8 @@ class QuickTestRunner {
         logFile = file
     }
 
-    fun classpath(fs: FileSystem, vararg cp: Path): QuickTestRunner = apply {
-        cpFs = fs
-        classpath = cp.toList()
-    }
-
     fun run(): QuickTestRunResults {
-        val results = runTests(dirFs, directory, cpFs, classpath)
+        val results = runTests(dirFs, directory)
         val log = logFile
         if (log != null) QuickTestUtils.writeResults(results, logFs, log)
         return QuickTestRunResults(results)
@@ -54,7 +46,6 @@ class QuickTestRunner {
                     .build())
                 addOption(Option.builder().longOpt("directory").hasArg().desc("Directory to scan").build())
                 addOption(Option.builder().longOpt("log").hasArg().desc("Log file to dump results").build())
-                addOption(Option.builder().longOpt("classpath").hasArg().desc("Extra classpath for compiling and running tests").build())
             }
             val cmd = DefaultParser().parse(options, args)
             if (cmd.hasOption("help")) {
@@ -63,10 +54,8 @@ class QuickTestRunner {
             }
             val dirPath = cmd.getOptionValue("directory", ".")
             val logPath = cmd.getOptionValue("log")
-            val cp = cmd.getOptionValue("classpath")
             val runner = QuickTestRunner().directory(File(dirPath))
             if (logPath != null) runner.logFile(File(logPath))
-            if (cp != null) runner.classpath(cp)
             val results = runner.run()
             results.results.forEach { result ->
                 if (result.success) {
@@ -77,31 +66,81 @@ class QuickTestRunner {
             }
         }
 
-        internal fun runTests(dirFs: FileSystem, root: Path, cpFs: FileSystem, cp: List<Path>? = null): List<TestResult> {
+        internal fun runTests(dirFs: FileSystem, root: Path): List<TestResult> {
             val results = mutableListOf<TestResult>()
             dirFs.listRecursively(root).filter { it.name == "quicktest.kts" }.forEach { file ->
                 val tempDir = Files.createTempDirectory("qtcompile")
                 val outputDir = tempDir.toOkioPath()
-                val classpathStr = cp?.joinToString(File.pathSeparator) { cpFs.canonicalize(it).toString() }
-                    ?: System.getProperty("java.class.path")
-                QuickTestUtils.compileQuickTest(dirFs, file, FileSystem.SYSTEM, outputDir, classpathStr)
-                val className = file.name.substringBeforeLast('.').replaceFirstChar { it.uppercase() } + "Kt"
-                val cpUrls = classpathStr.split(File.pathSeparator)
-                    .filter { it.isNotBlank() }
-                    .map { File(it).toURI().toURL() }
-                val loaderUrls = arrayOf(outputDir.toNioPath().toUri().toURL()) + cpUrls.toTypedArray()
-                val loader = URLClassLoader(loaderUrls, ClassLoader.getSystemClassLoader())
-                val clazz = loader.loadClass(className)
-                clazz.declaredMethods.filter { it.parameterCount == 0 }.forEach { method ->
-                    try {
-                        method.invoke(null)
-                        results += TestResult(file, method.name, true, null)
-                    } catch (t: Throwable) {
-                        results += TestResult(file, method.name, false, t.cause ?: t)
+
+                try {
+                    val dependsOn = parseDependsOn(dirFs, file)
+                    val jars = dependsOn.mapNotNull { buildRule(it) }
+                    val extraCp = jars.joinToString(File.pathSeparator) { it.absolutePath }
+                    val classpathStr = System.getProperty("java.class.path") +
+                        (if (extraCp.isNotBlank()) File.pathSeparator + extraCp else "")
+
+                    QuickTestUtils.compileQuickTest(dirFs, file, FileSystem.SYSTEM, outputDir, classpathStr)
+
+                    val className = file.name.substringBeforeLast('.').replaceFirstChar { it.uppercase() } + "Kt"
+                    val cpUrls = classpathStr.split(File.pathSeparator)
+                        .filter { it.isNotBlank() }
+                        .map { File(it).toURI().toURL() }
+                    val loaderUrls = arrayOf(outputDir.toNioPath().toUri().toURL()) + cpUrls.toTypedArray()
+                    val loader = URLClassLoader(loaderUrls, ClassLoader.getSystemClassLoader())
+                    val clazz = loader.loadClass(className)
+                    clazz.declaredMethods.filter { it.parameterCount == 0 }.forEach { method ->
+                        try {
+                            method.invoke(null)
+                            results += TestResult(file, method.name, true, null)
+                        } catch (t: Throwable) {
+                            results += TestResult(file, method.name, false, t.cause ?: t)
+                        }
                     }
+                } finally {
+                    tempDir.toFile().deleteRecursively()
                 }
             }
             return results
+        }
+
+        private fun parseDependsOn(fs: FileSystem, file: Path): List<String> {
+            val text = fs.read(file) { readUtf8() }
+            val regex = Regex("@file:(?:[\\w.]+\\.)?DependsOn\\(\"([^\"]+)\"\\)")
+            return regex.findAll(text).map { it.groupValues[1] }.toList()
+        }
+
+        private fun buildRule(rule: String): File? {
+            val jar = File(rule)
+            if (jar.exists()) return jar
+
+            // Attempt to build the rule using kompile-cli. The CLI is expected
+            // to materialize a jar file in the provided output directory.
+            val output = kotlin.io.path.createTempDirectory("qtbuild").toFile()
+            try {
+                val process = try {
+                    ProcessBuilder("kompile", rule, output.absolutePath)
+                        .redirectErrorStream(true)
+                        .start()
+                } catch (e: Exception) {
+                    System.err.println("[WARN] Unable to execute build command: ${e.message}")
+                    return null
+                }
+                val log = process.inputStream.bufferedReader().use { it.readText() }
+                if (process.waitFor() != 0) {
+                    System.err.println("[WARN] Build command failed for '$rule': ${log.lines().firstOrNull() ?: ""}")
+                    return null
+                }
+
+                val jarFile = output.walkTopDown().firstOrNull { it.isFile && it.extension == "jar" }
+                if (jarFile == null) {
+                    System.err.println("[WARN] Build rule '$rule' produced no jar")
+                    return null
+                }
+
+                return jarFile
+            } finally {
+                output.deleteRecursively()
+            }
         }
     }
 }

@@ -73,13 +73,13 @@ class QuickTestRunnerPublicApiTest {
         val testFile = File(testDir, "quicktest.kts")
         testFile.writeText(
             """
+            @file:community.kotlin.test.quicktest.DependsOn("${jarFile.absolutePath}")
             import helper.Helper
             fun usesHelper() { if (Helper.value() != 42) throw RuntimeException("bad") }
             """.trimIndent()
         )
 
-        val cp = System.getProperty("java.class.path") + File.pathSeparator + jarFile.absolutePath
-        val results = QuickTestRunner().directory(testDir).classpath(cp).run()
+        val results = QuickTestRunner().directory(testDir).run()
         assertEquals(1, results.results.size)
         assertTrue(results.results.first().success)
     }
