@@ -1,4 +1,4 @@
-package community.kotlin.test.quicktest
+package community.kotlin.unittesting.quicktest
 
 import kompiler.effects.Diagnostic
 import kompiler.effects.DiagnosticEffect

@@ -3,7 +3,7 @@ plugins {
     application
 }
 
-group = "community.kotlin.test.quicktest"
+group = "community.kotlin.unittesting.quicktest"
 version = "1.0-SNAPSHOT"
 
 repositories {
@@ -39,14 +39,14 @@ tasks.named<Jar>("jar") {
 }
 
 application {
-    mainClass.set("community.kotlin.test.quicktest.QuickTestRunner")
+    mainClass.set("community.kotlin.unittesting.quicktest.QuickTestRunner")
 }
 
 val fatJar by tasks.registering(Jar::class) {
     archiveClassifier.set("all")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     manifest {
-        attributes["Main-Class"] = "community.kotlin.test.quicktest.QuickTestRunner"
+        attributes["Main-Class"] = "community.kotlin.unittesting.quicktest.QuickTestRunner"
     }
     from(sourceSets.main.get().output)
     from("README.md")

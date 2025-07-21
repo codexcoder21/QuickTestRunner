@@ -1,4 +1,4 @@
-package community.kotlin.test.quicktest
+package community.kotlin.unittesting.quicktest
 
 import community.kotlin.psi.leakproof.withKtFile
 import kompile.Workspace

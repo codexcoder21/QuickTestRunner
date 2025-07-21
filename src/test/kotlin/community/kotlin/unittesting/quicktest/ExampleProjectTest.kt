@@ -1,7 +1,7 @@
 package org.example
 
-import community.kotlin.test.quicktest.QuickTestRunner
-import community.kotlin.test.quicktest.workspace
+import community.kotlin.unittesting.quicktest.QuickTestRunner
+import community.kotlin.unittesting.quicktest.workspace
 import kotlin.test.*
 import java.io.File
 
