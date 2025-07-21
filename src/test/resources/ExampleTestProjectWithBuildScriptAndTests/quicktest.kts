@@ -11,5 +11,5 @@ fun subTest() { if(subtract(2,3) != -1) throw Error("Subtraction broken") }
 
 fun jsoupTest() {
     val doc = Jsoup.parse("<p>Hello</p>")
-    println(doc.text())
+    System.out.println(doc.text())
 }
