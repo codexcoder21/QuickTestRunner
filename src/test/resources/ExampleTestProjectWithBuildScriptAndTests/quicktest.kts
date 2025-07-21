@@ -1,8 +1,8 @@
-@file:DependsOn("org.example.buildMaven()")
+@file:WithArtifact("org.example.buildMaven()")
 
 import org.example.add
 import org.example.subtract
-import community.kotlin.test.quicktest.DependsOn
+import build.kotlin.withartifact.WithArtifact
 
-fun addTest() { kotlin.test.assertEquals(5, add(2,3)) }
-fun subTest() { kotlin.test.assertEquals(1, subtract(3,2)) }
+fun addTest() { if(add(2,3) != 5) throw Error("Addition broken") }
+fun subTest() { if(subtract(2,3) != -1) throw Error("Subtraction broken") }

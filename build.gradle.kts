@@ -24,6 +24,7 @@ dependencies {
     implementation("com.squareup.okio:okio:3.6.0")
     implementation("kompile-cli:kompile-cli:0.0.1")
     implementation("community.kotlin.psi.annotationutils:community-kotlin-psi-annotationutils:0.0.1")
+    implementation("build.kotlin.withartifact:build-kotlin-withartifact:0.0.1")
     testImplementation(kotlin("test"))
     testImplementation("org.eclipse.jdt:ecj:3.33.0")
 }

@@ -1,5 +1,11 @@
 package community.kotlin.test.quicktest
 
+import community.kotlin.psi.leakproof.withKtFile
+import kompile.Workspace
+import kompiler.effects.DiagnosticEffect
+import kompiler.effects.DiagnosticSeverity
+import kotlinx.algebraiceffects.Effective
+import kotlinx.algebraiceffects.NotificationEffect
 import org.apache.commons.cli.DefaultParser
 import org.apache.commons.cli.Option
 import org.apache.commons.cli.Options
@@ -14,31 +20,17 @@ import okio.buffer
 
 /** Entry point and core runner for quick tests. */
 class QuickTestRunner {
-    private var dirFs: FileSystem = FileSystem.SYSTEM
-    private var directory: Path = ".".toPath()
 
     private var logFs: FileSystem = FileSystem.SYSTEM
     private var logFile: Path? = null
 
-    private var cpFs: FileSystem = FileSystem.SYSTEM
-    private var classpath: List<Path>? = null
-
     private var workspaceFs: FileSystem = FileSystem.SYSTEM
     private var workspace: Path = ".".toPath()
 
-    fun directory(fs: FileSystem, dir: Path): QuickTestRunner = apply {
-        dirFs = fs
-        directory = dir
-    }
 
     fun logFile(fs: FileSystem, file: Path): QuickTestRunner = apply {
         logFs = fs
         logFile = file
-    }
-
-    fun classpath(fs: FileSystem, vararg cp: Path): QuickTestRunner = apply {
-        cpFs = fs
-        classpath = cp.toList()
     }
 
     fun workspace(fs: FileSystem, dir: Path): QuickTestRunner = apply {
@@ -47,7 +39,7 @@ class QuickTestRunner {
     }
 
     fun run(): QuickTestRunResults {
-        val results = runTests(dirFs, directory, cpFs, classpath)
+        val results = runTests(workspaceFs, workspace)
         val log = logFile
         if (log != null) QuickTestUtils.writeResults(results, logFs, log)
         return QuickTestRunResults(results)
@@ -61,9 +53,7 @@ class QuickTestRunner {
                     .longOpt("help")
                     .desc("Print this help message")
                     .build())
-                addOption(Option.builder().longOpt("directory").hasArg().desc("Directory to scan").build())
                 addOption(Option.builder().longOpt("log").hasArg().desc("Log file to dump results").build())
-                addOption(Option.builder().longOpt("classpath").hasArg().desc("Extra classpath for compiling and running tests").build())
                 addOption(Option.builder().longOpt("workspace").hasArg().desc("Workspace root directory").build())
             }
             val cmd = DefaultParser().parse(options, args)
@@ -71,13 +61,10 @@ class QuickTestRunner {
                 org.apache.commons.cli.HelpFormatter().printHelp("QuickTestRunner", options)
                 return
             }
-            val dirPath = cmd.getOptionValue("directory", ".")
             val logPath = cmd.getOptionValue("log")
-            val cp = cmd.getOptionValue("classpath")
             val workspacePath = cmd.getOptionValue("workspace", ".")
-            val runner = QuickTestRunner().directory(File(dirPath)).workspace(File(workspacePath))
+            val runner = QuickTestRunner().workspace(File(workspacePath))
             if (logPath != null) runner.logFile(File(logPath))
-            if (cp != null) runner.classpath(cp)
             val results = runner.run()
             results.results.forEach { result ->
                 if (result.success) {
@@ -88,41 +75,79 @@ class QuickTestRunner {
             }
         }
 
-        internal fun runTests(dirFs: FileSystem, root: Path, cpFs: FileSystem, cp: List<Path>? = null): List<TestResult> {
+        internal fun runTests(workspaceFs: FileSystem, workspaceRoot: Path): List<TestResult> {
             val results = mutableListOf<TestResult>()
-            dirFs.listRecursively(root).filter { it.name == "quicktest.kts" }.forEach { file ->
+            workspaceRoot.toFile().walkTopDown().toList().filter { it.name == "quicktest.kts" }.forEach { file ->
                 val tempDir = Files.createTempDirectory("qtcompile")
                 val outputDir = tempDir.toOkioPath()
-                val classpathStr = cp?.joinToString(File.pathSeparator) { cpFs.canonicalize(it).toString() }
-                    ?: System.getProperty("java.class.path")
 
                 val ktPath = tempDir.resolve(file.name.substringBeforeLast('.') + ".kt")
-                dirFs.source(file).use { src ->
+                workspaceFs.source(file.toOkioPath()).use { src ->
                     FileSystem.SYSTEM.sink(ktPath.toOkioPath()).buffer().use { out ->
                         out.writeAll(src)
                     }
                 }
-                val cpFiles = classpathStr.split(File.pathSeparator)
+                val buildRules = getBuildRules(file)
+
+                val cpFiles = buildRules.map { buildRule ->
+                    val wsRoot = workspaceFs.canonicalize(workspaceRoot).toFile()
+                    runBuildRule(wsRoot, buildRule)
+                } + System.getProperty("java.class.path")  // TODO: Should not be passing in system/parent classpath once we can import artifacts via maven.
+                    .split(File.pathSeparator)
                     .filter { it.isNotBlank() }
                     .map { File(it) }
+                    .filter { !it.absolutePath.contains("QuickTest") }
+                    .filter { !it.absolutePath.contains("2.2.0") }
+
+                cpFiles.forEach {
+                    println(it.absolutePath)
+                }
+
                 QuickTestUtils.compileKotlin(listOf(ktPath.toFile()), cpFiles, outputDir.toNioPath().toFile())
                 val className = file.name.substringBeforeLast('.').replaceFirstChar { it.uppercase() } + "Kt"
-                val cpUrls = classpathStr.split(File.pathSeparator)
-                    .filter { it.isNotBlank() }
-                    .map { File(it).toURI().toURL() }
-                val loaderUrls = arrayOf(outputDir.toNioPath().toUri().toURL()) + cpUrls.toTypedArray()
+                val loaderUrls = arrayOf(outputDir.toNioPath().toUri().toURL()) + cpFiles.map { it.toURI().toURL() }.toTypedArray()
                 val loader = URLClassLoader(loaderUrls, ClassLoader.getSystemClassLoader())
                 val clazz = loader.loadClass(className)
                 clazz.declaredMethods.filter { it.parameterCount == 0 }.forEach { method ->
                     try {
                         method.invoke(null)
-                        results += TestResult(file, method.name, true, null)
+                        results += TestResult(file.toOkioPath(), method.name, true, null)
                     } catch (t: Throwable) {
-                        results += TestResult(file, method.name, false, t.cause ?: t)
+                        results += TestResult(file.toOkioPath(), method.name, false, t.cause ?: t)
                     }
                 }
             }
             return results
         }
     }
+}
+
+
+private fun getBuildRules(file: File): List<String> {
+    return withKtFile(file) { ktFile ->
+        ktFile.annotationEntries.filter{it.shortName!!.identifier == "build.kotlin.withartifact.WithArtifact" || it.shortName!!.identifier == "WithArtifact"}.map { annotationEntry ->
+            val buildRule = annotationEntry.valueArgumentList!!.arguments.single().text.removeSurrounding("\"")
+            buildRule
+        }
+    }
+}
+
+private fun runBuildRule(workspaceDir: File, rule: String): File {
+    val workspace = Workspace(workspaceDir)
+    val out = kotlin.io.path.createTempFile("qtbuild", null).toFile().apply { delete() }
+    Effective {
+        handler { e: NotificationEffect ->
+            if (e is DiagnosticEffect && (e.diagnostic.severity == DiagnosticSeverity.ERROR || e.diagnostic.severity == DiagnosticSeverity.WARNING)) {
+                e.printTinyTrace()
+            }
+        }
+        workspace.execute(rule, out)
+    }
+    val resultFile = out
+    if (resultFile.isDirectory) {
+        val jar = resultFile.walkTopDown().firstOrNull { it.isFile && it.name.endsWith(".jar") }
+            ?: throw IllegalStateException("No jar produced by build rule $rule")
+        return jar
+    }
+    return resultFile
 }

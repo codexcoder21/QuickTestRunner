@@ -68,3 +68,8 @@ Run the following command to build the project and execute unit tests:
 ```
 ./gradlew test
 ```
+
+## TODO:
+* Should not be passing in system/parent classpath once we can import artifacts via maven.
+* Should use a filtering classloader to make child builds isolated from the ktest program.
+* 

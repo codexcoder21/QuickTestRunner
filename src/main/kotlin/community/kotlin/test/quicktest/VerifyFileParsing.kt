@@ -14,7 +14,7 @@ fun main() {
 
     val buildRules = mutableListOf<String>()
     withKtFile(file) { ktFile ->
-        ktFile.annotationEntries.filter{it.shortName!!.identifier == "DependsOn"}.forEach { annotationEntry ->
+        ktFile.annotationEntries.filter{it.shortName!!.identifier == "build.kotlin.withartifact.WithArtifact" || it.shortName!!.identifier == "WithArtifact"}.forEach { annotationEntry ->
             val buildRule = annotationEntry.valueArgumentList!!.arguments.single().text.removeSurrounding("\"")
             buildRules.add(buildRule)
         }
