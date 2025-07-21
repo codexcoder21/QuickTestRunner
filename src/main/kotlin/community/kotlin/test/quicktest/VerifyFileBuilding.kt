@@ -8,15 +8,22 @@ import kotlinx.algebraiceffects.Effective
 import kotlinx.algebraiceffects.NotificationEffect
 
 
-val workspace = Workspace(File("src/test/resources/ExampleTestProjectWithBuildScriptAndTests/quicktest.kts"))
-
-val command = "org.example.buildMaven()"
-val output = File("/tmp/ExampleOutput")
 
 
 fun main() {
+
+
+    val workspace = Workspace(File("src/test/resources/ExampleTestProjectWithBuildScriptAndTests/"))
+
+    val command = "org.example.buildMaven()"
+    val output = File("delete-me")
+
+    output.mkdir()
+
     Effective {
         handler { e: NotificationEffect ->
+
+            //println("Handling ${e.message} of type ${e.javaClass.canonicalName}")
 
             if(e.javaClass.canonicalName.equals("tools.kotlin.build.runtime.BuildingToCacheLocationEffect")) {
                 // ignore
