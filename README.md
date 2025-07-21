@@ -43,7 +43,7 @@ java -jar build/libs/QuickTestRunner-1.0-SNAPSHOT-all.jar --directory path/to/se
 You can also run tests directly from Kotlin code using `QuickTestRunner`:
 
 ```kotlin
-import community.kotlin.test.quicktest.QuickTestRunner
+import community.kotlin.unittesting.quicktest.QuickTestRunner
 import java.io.File
 
 val results = QuickTestRunner()
