@@ -1,5 +1,10 @@
 package community.kotlin.test.quicktest
 
+import kompiler.effects.Diagnostic
+import kompiler.effects.DiagnosticEffect
+import kompiler.effects.DiagnosticSeverity
+import kotlinc.diagnostic.collector.DiagnosticCollector
+import kotlinx.algebraiceffects.toss
 import org.jetbrains.kotlin.cli.common.CLICompiler
 import org.jetbrains.kotlin.cli.common.ExitCode
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
@@ -7,29 +12,46 @@ import org.apache.commons.text.StringEscapeUtils
 import okio.FileSystem
 import okio.Path
 import okio.buffer
+import org.jetbrains.kotlin.cli.common.arguments.validateArguments
+import org.jetbrains.kotlin.cli.common.messages.MessageRenderer
+import org.jetbrains.kotlin.config.Services
+import java.io.File
 
 /** Utility functions for compiling and reporting quick tests. */
 object QuickTestUtils {
-    fun compileQuickTest(srcFs: FileSystem, src: Path, destFs: FileSystem, outputDir: Path, classpath: String = System.getProperty("java.class.path")) {
-        val srcName = src.name.substringBeforeLast('.')
-        val tempKt = outputDir / (srcName + ".kt")
-        destFs.delete(tempKt, mustExist = false)
-        // Copy using java.io for portability
-        val srcFile = srcFs.canonicalize(src).toNioPath().toFile()
-        val outputDirFile = destFs.canonicalize(outputDir).toNioPath().toFile()
-        outputDirFile.mkdirs()
-        val tempKtFile = outputDirFile.resolve(srcName + ".kt")
-        srcFile.copyTo(tempKtFile, overwrite = true)
-        val args = arrayOf(
-            "-classpath", classpath,
-            "-d", outputDirFile.absolutePath,
-            tempKtFile.absolutePath
-        )
-        val exit = CLICompiler.doMainNoExit(K2JVMCompiler(), args)
-        if (exit != ExitCode.OK) {
-            throw RuntimeException("Compilation failed for ${srcFs.canonicalize(src)}")
+
+    private fun compileKotlin(ktFiles: List<File>, classpath: List<File>, destination: File) {
+        val compiler = K2JVMCompiler()
+        val errStream = System.err
+        val messageRenderer = MessageRenderer.PLAIN_RELATIVE_PATHS
+        val arguments = compiler.createArguments()
+        arguments.noStdlib = true
+        arguments.useIR = true
+        arguments.includeRuntime = false
+        arguments.classpath = classpath.map { it.absolutePath }.joinToString(":")
+        arguments.jvmTarget = "1.8"
+        arguments.destination = destination.absolutePath
+        arguments.freeArgs = ktFiles.map { it.absolutePath }
+// TODO:            arguments.pluginClasspaths = pluginClasspaths.toTypedArray()
+        try {
+            errStream.print(messageRenderer.renderPreamble())
+            val errorMessage = validateArguments(arguments.errors)
+            if (errorMessage != null) {
+                toss(DiagnosticEffect(Diagnostic(DiagnosticSeverity.ERROR, errorMessage, null)))
+                toss(DiagnosticEffect(Diagnostic(DiagnosticSeverity.INFO, "Use -help for more information", null)))
+                throw Error("compile failed!")
+            }
+            val collector = DiagnosticCollector(messageRenderer)
+            val code = compiler.exec(collector, Services.EMPTY, arguments)
+            collector.getDiagnostics().forEach {
+                toss(DiagnosticEffect(it))
+            }
+            if (code != ExitCode.OK) throw Error("Compile failure: Non-zero exit code: $code")
+        } finally {
+            errStream.print(messageRenderer.renderConclusion())
         }
     }
+
 
     fun writeResults(results: List<TestResult>, fs: FileSystem, logFile: Path) {
         when {

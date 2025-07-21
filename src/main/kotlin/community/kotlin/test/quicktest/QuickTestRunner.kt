@@ -84,7 +84,7 @@ class QuickTestRunner {
                 val outputDir = tempDir.toOkioPath()
                 val classpathStr = cp?.joinToString(File.pathSeparator) { cpFs.canonicalize(it).toString() }
                     ?: System.getProperty("java.class.path")
-                QuickTestUtils.compileQuickTest(dirFs, file, FileSystem.SYSTEM, outputDir, classpathStr)
+                // TODO: Do compile
                 val className = file.name.substringBeforeLast('.').replaceFirstChar { it.uppercase() } + "Kt"
                 val cpUrls = classpathStr.split(File.pathSeparator)
                     .filter { it.isNotBlank() }
