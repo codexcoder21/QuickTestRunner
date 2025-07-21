@@ -25,6 +25,7 @@ dependencies {
     implementation("kompile-cli:kompile-cli:0.0.1")
     implementation("community.kotlin.psi.annotationutils:community-kotlin-psi-annotationutils:0.0.1")
     implementation("build.kotlin.withartifact:build-kotlin-withartifact:0.0.1")
+    implementation("io.get-coursier:interface:1.0.28")
     testImplementation(kotlin("test"))
     testImplementation("org.eclipse.jdt:ecj:3.33.0")
 }
