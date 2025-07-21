@@ -14,6 +14,7 @@ import java.net.URLClassLoader
 import java.nio.file.Files
 import coursierapi.Dependency
 import coursierapi.Fetch
+import coursierapi.MavenRepository
 import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toOkioPath
@@ -139,7 +140,10 @@ private fun runBuildRule(workspaceDir: File, rule: String): List<File> {
     if (mavenPattern.matches(rule)) {
         val parts = rule.split(":")
         val dep = Dependency.of(parts[0], parts[1], parts[2])
-        return Fetch.create().addDependencies(dep).fetch()
+        return Fetch.create()
+            .addRepositories(MavenRepository.of("https://repo1.maven.org/maven2/"))
+            .addDependencies(dep)
+            .fetch()
     }
 
     val workspace = Workspace(workspaceDir)
