@@ -23,7 +23,9 @@ dependencies {
     implementation("org.apache.commons:commons-text:1.10.0")
     implementation("com.squareup.okio:okio:3.6.0")
     implementation("kompile-cli:kompile-cli:0.0.1")
+    implementation("kompile:build-kotlin-jvm:0.0.1")
     implementation("community.kotlin.psi.annotationutils:community-kotlin-psi-annotationutils:0.0.1")
+    implementation(kotlin("compiler-embeddable"))
     testImplementation(kotlin("test"))
     testImplementation("org.eclipse.jdt:ecj:3.33.0")
 }
