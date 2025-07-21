@@ -14,7 +14,7 @@ Run `--help` to see all available command line options.
 ### Using Gradle
 
 ```
-./gradlew run --args='--directory path/to/search --log results.xml --classpath "lib/dependency.jar"'
+./gradlew run --args='--directory path/to/search --log results.xml --classpath "lib/dependency.jar" --workspace path/to/workspace'
 ```
 
 If the log file ends with `.xml` an XML report is created. If it ends with `.html`,
@@ -50,6 +50,7 @@ val results = QuickTestRunner()
     .directory(File("path/to/tests"))
     .logFile(File("results.xml"))
     .classpath("lib/dependency.jar")
+    .workspace(File("path/to/workspace"))
     .run()
 
 results.results.forEach { r ->

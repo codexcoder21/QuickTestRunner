@@ -20,7 +20,7 @@ import java.io.File
 /** Utility functions for compiling and reporting quick tests. */
 object QuickTestUtils {
 
-    private fun compileKotlin(ktFiles: List<File>, classpath: List<File>, destination: File) {
+    fun compileKotlin(ktFiles: List<File>, classpath: List<File>, destination: File) {
         val compiler = K2JVMCompiler()
         val errStream = System.err
         val messageRenderer = MessageRenderer.PLAIN_RELATIVE_PATHS

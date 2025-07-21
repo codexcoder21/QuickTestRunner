@@ -20,3 +20,6 @@ fun QuickTestRunner.classpath(cp: String): QuickTestRunner {
         .map { File(it).toPath().toOkioPath() }
     return classpath(FileSystem.SYSTEM, *paths.toTypedArray())
 }
+
+fun QuickTestRunner.workspace(dir: File): QuickTestRunner =
+    workspace(FileSystem.SYSTEM, dir.toPath().toOkioPath())
