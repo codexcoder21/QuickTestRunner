@@ -84,7 +84,7 @@ class QuickTestRunner {
                 val outputDir = tempDir.toOkioPath()
                 val classpathStr = cp?.joinToString(File.pathSeparator) { cpFs.canonicalize(it).toString() }
                     ?: System.getProperty("java.class.path")
-                // TODO: Do compile
+                // TODO: Do compile of the quicktest.kts file using classpath (see `compileKotlin` function).  Make sure quicktest.kts gets a name ending in `.kt` before compiling, to avoid bugs with kts files.
                 val className = file.name.substringBeforeLast('.').replaceFirstChar { it.uppercase() } + "Kt"
                 val cpUrls = classpathStr.split(File.pathSeparator)
                     .filter { it.isNotBlank() }
