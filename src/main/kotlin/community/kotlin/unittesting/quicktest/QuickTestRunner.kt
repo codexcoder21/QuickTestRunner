@@ -172,12 +172,23 @@ class QuickTestRunner {
 
 // TODO: Should provide annotations from an embedded jar (instead of fetching from maven) in order to enable offline execution.
 private fun getBuildAnnotationsJar(): List<File> {
-    val parts = "build.kotlin.withartifact:build-kotlin-withartifact:0.0.1".split(":")
-    val dep = Dependency.of(parts[0], parts[1], parts[2])
+    val withArtifact = Dependency.of(
+        "build.kotlin.withartifact",
+        "build-kotlin-withartifact",
+        "0.0.1"
+    )
+    val annotations = Dependency.of(
+        "build.kotlin.annotations",
+        "build-kotlin-annotations",
+        "0.0.1"
+    )
     val fetch = Fetch.create()
-    val coursierRepositories = listOf("http://kotlin.directory").map { repoUrl -> MavenRepository.of(repoUrl) }.toTypedArray()
+    val coursierRepositories = listOf("http://kotlin.directory")
+        .map { repoUrl -> MavenRepository.of(repoUrl) }
+        .toTypedArray()
     fetch.withRepositories(*coursierRepositories)
-    fetch.withDependencies(dep.withTransitive(false))
+    fetch.withDependencies(withArtifact.withTransitive(false))
+    fetch.addDependencies(annotations.withTransitive(false))
     return fetch.fetch()
 }
 
