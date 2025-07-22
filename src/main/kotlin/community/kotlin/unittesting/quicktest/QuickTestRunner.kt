@@ -80,6 +80,9 @@ class QuickTestRunner {
                     println("PASSED ${result.file}:${result.function}")
                 } else {
                     println("FAILED ${result.file}:${result.function} -> ${result.error?.message}")
+                    if (verbose) {
+                        result.error?.printStackTrace()
+                    }
                 }
             }
 
