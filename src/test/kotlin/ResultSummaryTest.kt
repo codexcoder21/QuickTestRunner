@@ -68,4 +68,29 @@ class ResultSummaryTest {
         val passedCount = output.lines().count { it.trim().startsWith("PASSED") }
         assertEquals(3, passedCount, "Verbose output should include all passing tests")
     }
+
+    @Test
+    fun disabledTestsSummaryAndOutput() {
+        assertTrue(jar.exists(), "Fat jar should be built")
+        val root = File("src/test/resources/ExampleProjectWithDisabled")
+        val cmd = mutableListOf("java") + proxyArgs() + listOf("-jar", jar.absolutePath, "--workspace", root.absolutePath)
+        val process = ProcessBuilder(cmd).redirectErrorStream(true).start()
+        val output = process.inputStream.bufferedReader().readText()
+        val exit = process.waitFor()
+        assertEquals(0, exit)
+        assertTrue(output.contains("ALL TESTS PASSED"))
+        assertTrue(output.contains("1 unit tests disabled"))
+        assertFalse(output.contains("disabledTest"), "Disabled test name should not be printed")
+    }
+
+    @Test
+    fun verbosePrintsDisabledTests() {
+        assertTrue(jar.exists(), "Fat jar should be built")
+        val root = File("src/test/resources/ExampleProjectWithDisabled")
+        val cmd = mutableListOf("java") + proxyArgs() + listOf("-jar", jar.absolutePath, "--workspace", root.absolutePath, "--verbose")
+        val process = ProcessBuilder(cmd).redirectErrorStream(true).start()
+        val output = process.inputStream.bufferedReader().readText()
+        process.waitFor()
+        assertTrue(output.lines().any { it.trim() == "DISABLED disabledTest" }, "Verbose output should include disabled tests")
+    }
 }
