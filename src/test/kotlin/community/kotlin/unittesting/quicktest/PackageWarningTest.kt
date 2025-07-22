@@ -1,7 +1,10 @@
 package org.example
 
 import community.kotlin.unittesting.quicktest.QuickTestRunner
+import community.kotlin.unittesting.quicktest.PackageWarningEffect
 import community.kotlin.unittesting.quicktest.workspace
+import kotlinx.algebraiceffects.Effective
+import kotlinx.algebraiceffects.NotificationEffect
 import kotlin.test.*
 import java.io.File
 import java.io.ByteArrayOutputStream
@@ -15,9 +18,16 @@ class PackageWarningTest {
         val buffer = ByteArrayOutputStream()
         System.setErr(PrintStream(buffer))
         try {
-            QuickTestRunner()
-                .workspace(root)
-                .run()
+            Effective<Unit> {
+                handler { e: NotificationEffect ->
+                    if (e is PackageWarningEffect) {
+                        System.err.println(e.message)
+                    }
+                }
+                QuickTestRunner()
+                    .workspace(root)
+                    .run()
+            }
         } finally {
             System.setErr(originalErr)
         }
