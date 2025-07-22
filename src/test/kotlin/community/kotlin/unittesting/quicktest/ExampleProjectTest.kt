@@ -1,6 +1,7 @@
 package org.example
 
 import community.kotlin.unittesting.quicktest.QuickTestRunner
+import community.kotlin.unittesting.quicktest.TestStatus
 import community.kotlin.unittesting.quicktest.workspace
 import kotlin.test.*
 import java.io.File
@@ -13,6 +14,6 @@ class ExampleProjectTest {
             .workspace(root)
             .run()
         assertEquals(3, results.results.size)
-        assertTrue(results.failed().isEmpty(), "All quick tests should pass")
+        assertTrue(results.getResults(TestStatus.FAILURE).isEmpty(), "All quick tests should pass")
     }
 }
