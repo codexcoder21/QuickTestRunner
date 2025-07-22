@@ -1,3 +1,5 @@
+import java.net.URI
+
 plugins {
     kotlin("jvm") version "2.2.0"
     application
@@ -59,4 +61,39 @@ val fatJar by tasks.registering(Jar::class) {
     from({
         configurations.runtimeClasspath.get().filter { it.name.endsWith(".jar") }.map { zipTree(it) }
     })
+}
+
+fun parseProxy(env: String): Pair<String, String>? {
+    val value = System.getenv(env) ?: System.getenv(env.lowercase()) ?: return null
+    val formatted = if ("://" in value) value else "http://$value"
+    return try {
+        val uri = URI(formatted)
+        val host = uri.host ?: return null
+        val port = if (uri.port == -1) "80" else uri.port.toString()
+        host to port
+    } catch (_: Exception) {
+        null
+    }
+}
+
+val httpProxy = parseProxy("HTTP_PROXY")
+val httpsProxy = parseProxy("HTTPS_PROXY")
+
+fun JavaForkOptions.applyProxy() {
+    httpProxy?.let { (h, p) ->
+        systemProperty("http.proxyHost", h)
+        systemProperty("http.proxyPort", p)
+    }
+    httpsProxy?.let { (h, p) ->
+        systemProperty("https.proxyHost", h)
+        systemProperty("https.proxyPort", p)
+    }
+}
+
+tasks.withType<Test>().configureEach {
+    applyProxy()
+}
+
+tasks.withType<JavaExec>().configureEach {
+    applyProxy()
 }
