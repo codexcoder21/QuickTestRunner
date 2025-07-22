@@ -77,10 +77,11 @@ class QuickTestRunner {
             val results = runner.run()
             val outputResults = if (verbose) results.results else results.results.filter { it.status != TestStatus.SUCCESS }
             outputResults.forEach { result ->
+                val qualifiedName = if (result.packageName.isNotEmpty()) "${result.packageName}.${result.function}" else result.function
                 if (result.status == TestStatus.SUCCESS) {
-                    println("PASSED ${result.file}:${result.function}")
+                    println("PASSED $qualifiedName")
                 } else {
-                    println("FAILED ${result.file}:${result.function} -> ${result.error?.message}")
+                    println("FAILED $qualifiedName -> ${result.error?.message}")
                     if (verbose) {
                         result.error?.printStackTrace()
                     }
@@ -111,6 +112,12 @@ class QuickTestRunner {
                         out.writeAll(src)
                     }
                 }
+                val pkgRegex = Regex("^\\s*package\\s+([\\w.]+)")
+                val packageName = workspaceFs.source(file.toOkioPath()).buffer().use { src ->
+                    src.readUtf8().lineSequence().firstOrNull { line -> pkgRegex.containsMatchIn(line) }?.let { line ->
+                        pkgRegex.find(line)?.groupValues?.get(1)
+                    } ?: ""
+                }
                 val buildRules = getBuildRules(file)
                 val repositories = getRepositories(file)
                     .ifEmpty { listOf("http://kotlin.directory/", "https://repo1.maven.org/maven2/") }
@@ -124,20 +131,21 @@ class QuickTestRunner {
                     } + getBuildAnnotationsJar()
 
                 QuickTestUtils.compileKotlin(listOf(ktPath.toFile()), cpFiles, outputDir.toNioPath().toFile())
-                val className = file.name.substringBeforeLast('.').replaceFirstChar { it.uppercase() } + "Kt"
+                val baseClassName = file.name.substringBeforeLast('.').replaceFirstChar { it.uppercase() } + "Kt"
+                val className = if (packageName.isNotEmpty()) "$packageName.$baseClassName" else baseClassName
                 val loaderUrls = arrayOf(outputDir.toNioPath().toUri().toURL()) + cpFiles.map { it.toURI().toURL() }.toTypedArray()
                 val loader = URLClassLoader(loaderUrls, ClassLoader.getSystemClassLoader())
                 val clazz = loader.loadClass(className)
                 clazz.declaredMethods.filter { it.parameterCount == 0 }.forEach { method ->
                     try {
                         method.invoke(null)
-                        results += TestResult(file.toOkioPath(), method.name, TestStatus.SUCCESS, null)
+                        results += TestResult(file.toOkioPath(), method.name, packageName, TestStatus.SUCCESS, null)
                     } catch (t: Throwable) {
-                        results += TestResult(file.toOkioPath(), method.name, TestStatus.FAILURE, t.cause ?: t)
+                        results += TestResult(file.toOkioPath(), method.name, packageName, TestStatus.FAILURE, t.cause ?: t)
                     }
                 }
                 } catch (t: Throwable) {
-                    results += TestResult(file.toOkioPath(), "<build>", TestStatus.FAILURE, t)
+                    results += TestResult(file.toOkioPath(), "<build>", packageName, TestStatus.FAILURE, t)
                 }
             }
             return results

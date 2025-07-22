@@ -66,11 +66,12 @@ object QuickTestUtils {
         fs.sink(file).buffer().use { out ->
             out.writeUtf8("<tests>\n")
             results.forEach { r ->
+                val qualifiedName = if (r.packageName.isNotEmpty()) "${r.packageName}.${r.function}" else r.function
                 if (r.status == TestStatus.SUCCESS) {
-                    out.writeUtf8("  <test file=\"${r.file}\" name=\"${r.function}\" success=\"true\"/>\n")
+                    out.writeUtf8("  <test file=\"${r.file}\" name=\"${qualifiedName}\" success=\"true\"/>\n")
                 } else {
                     val stack = r.error?.stackTraceToString()?.xmlEscape()
-                    out.writeUtf8("  <test file=\"${r.file}\" name=\"${r.function}\" success=\"false\">\n")
+                    out.writeUtf8("  <test file=\"${r.file}\" name=\"${qualifiedName}\" success=\"false\">\n")
                     out.writeUtf8("    <stacktrace>${stack}</stacktrace>\n")
                     out.writeUtf8("  </test>\n")
                 }
@@ -86,7 +87,8 @@ object QuickTestUtils {
             results.forEach { r ->
                 val stack = if (r.status == TestStatus.SUCCESS) "" else r.error?.stackTraceToString()?.htmlEscape()
                 val status = if (r.status == TestStatus.SUCCESS) "PASSED" else "FAILED"
-                out.writeUtf8("<tr><td>${r.file}</td><td>${r.function}</td><td>${status}</td><td><pre>${stack}</pre></td></tr>\n")
+                val qualifiedName = if (r.packageName.isNotEmpty()) "${r.packageName}.${r.function}" else r.function
+                out.writeUtf8("<tr><td>${r.file}</td><td>${qualifiedName}</td><td>${status}</td><td><pre>${stack}</pre></td></tr>\n")
             }
             out.writeUtf8("</table></body></html>\n")
         }
@@ -95,10 +97,11 @@ object QuickTestUtils {
     private fun writePlain(results: List<TestResult>, fs: FileSystem, file: Path) {
         fs.sink(file).buffer().use { out ->
             results.forEach { r ->
+                val qualifiedName = if (r.packageName.isNotEmpty()) "${r.packageName}.${r.function}" else r.function
                 if (r.status == TestStatus.SUCCESS) {
-                    out.writeUtf8("PASSED ${r.file}:${r.function}\n")
+                    out.writeUtf8("PASSED $qualifiedName\n")
                 } else {
-                    out.writeUtf8("FAILED ${r.file}:${r.function}\n")
+                    out.writeUtf8("FAILED $qualifiedName\n")
                     r.error?.stackTraceToString()?.let { out.writeUtf8(it + "\n") }
                 }
             }
