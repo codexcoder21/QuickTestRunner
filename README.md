@@ -10,6 +10,8 @@ frameworks are used.
 ## Usage
 
 Run `--help` to see all available command line options.
+By default only failing tests are printed and a summary is shown.
+Use `--verbose` to print results for all tests.
 
 ### Using Gradle
 
