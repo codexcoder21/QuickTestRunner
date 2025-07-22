@@ -10,37 +10,49 @@ class RepositoryAnnotationTest {
     @Test
     fun failingRepositoryListsRepositoriesInError() {
         val root = File("src/test/resources/ExampleProjectWithFakeRepository")
-        val error = assertFailsWith<RuntimeException> {
-            QuickTestRunner()
-                .workspace(root)
-                .run()
-        }
-        assertTrue(error.message!!.contains("org.jsoup:jsoup:1.21.1"))
-        assertTrue(error.message!!.contains("https://fake.repo.example"))
+        val results = QuickTestRunner()
+            .workspace(root)
+            .run()
+
+        val failures = results.failed()
+        assertTrue(failures.isNotEmpty(), "Expected the quick test to fail")
+        val message = failures.first().error?.message
+
+        assertNotNull(message)
+        assertTrue(message!!.contains("org.jsoup:jsoup:1.21.1"))
+        assertTrue(message.contains("https://fake.repo.example"))
     }
 
     @Test
     fun multipleRepositoriesAreCollected() {
         val root = File("src/test/resources/ExampleProjectWithMultipleRepositories")
-        val error = assertFailsWith<RuntimeException> {
-            QuickTestRunner()
-                .workspace(root)
-                .run()
-        }
-        assertTrue(error.message!!.contains("https://fake.repo.one"))
-        assertTrue(error.message!!.contains("https://fake.repo.two"))
+        val results = QuickTestRunner()
+            .workspace(root)
+            .run()
+
+        val failures = results.failed()
+        assertTrue(failures.isNotEmpty(), "Expected the quick test to fail")
+        val message = failures.first().error?.message
+
+        assertNotNull(message)
+        assertTrue(message!!.contains("https://fake.repo.one"))
+        assertTrue(message.contains("https://fake.repo.two"))
     }
 
     @Test
     fun defaultsUsedWhenNoRepositorySpecified() {
         val root = File("src/test/resources/ExampleProjectWithDefaultRepositories")
-        val error = assertFailsWith<RuntimeException> {
-            QuickTestRunner()
-                .workspace(root)
-                .run()
-        }
-        assertTrue(error.message!!.contains("http://kotlin.directory"))
-        assertTrue(error.message!!.contains("https://repo1.maven.org/maven2/"))
+        val results = QuickTestRunner()
+            .workspace(root)
+            .run()
+
+        val failures = results.failed()
+        assertTrue(failures.isNotEmpty(), "Expected the quick test to fail")
+        val message = failures.first().error?.message
+
+        assertNotNull(message)
+        assertTrue(message!!.contains("http://kotlin.directory"))
+        assertTrue(message.contains("https://repo1.maven.org/maven2/"))
     }
 }
 
