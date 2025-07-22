@@ -6,6 +6,7 @@ import kompiler.effects.DiagnosticEffect
 import kompiler.effects.DiagnosticSeverity
 import kotlinx.algebraiceffects.Effective
 import kotlinx.algebraiceffects.NotificationEffect
+import kotlinx.algebraiceffects.toss
 import org.apache.commons.cli.DefaultParser
 import org.apache.commons.cli.Option
 import org.apache.commons.cli.Options
@@ -46,7 +47,14 @@ class QuickTestRunner {
     }
 
     fun run(): QuickTestRunResults {
-        val results = runTests(workspaceFs, workspace)
+        val results = Effective<List<TestResult>> {
+            handler { e: NotificationEffect ->
+                if (e is PackageWarningEffect) {
+                    System.err.println(e.message)
+                }
+            }
+            runTests(workspaceFs, workspace)
+        }
         val log = logFile
         if (log != null) QuickTestUtils.writeResults(results, logFs, log)
         return QuickTestRunResults(results)
@@ -113,10 +121,17 @@ class QuickTestRunner {
                     }
                 }
                 val pkgRegex = Regex("^\\s*package\\s+([\\w.]+)")
-                val packageName = workspaceFs.source(file.toOkioPath()).buffer().use { src ->
-                    src.readUtf8().lineSequence().firstOrNull { line -> pkgRegex.containsMatchIn(line) }?.let { line ->
-                        pkgRegex.find(line)?.groupValues?.get(1)
-                    } ?: ""
+                val lines = workspaceFs.source(file.toOkioPath()).buffer().use { src ->
+                    src.readUtf8().lineSequence().toList()
+                }
+                val pkgIndex = lines.indexOfFirst { line -> pkgRegex.containsMatchIn(line) }
+                val packageName = if (pkgIndex != -1) pkgRegex.find(lines[pkgIndex])?.groupValues?.get(1) ?: "" else ""
+                val firstCodeIndex = lines.indexOfFirst { line ->
+                    val t = line.trim()
+                    t.isNotEmpty() && !t.startsWith("@file:")
+                }
+                if (pkgIndex == -1 || pkgIndex != firstCodeIndex) {
+                    toss(PackageWarningEffect(file.absolutePath))
                 }
                 val buildRules = getBuildRules(file)
                 val repositories = getRepositories(file)
