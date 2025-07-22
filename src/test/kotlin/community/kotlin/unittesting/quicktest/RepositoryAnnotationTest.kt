@@ -47,12 +47,8 @@ class RepositoryAnnotationTest {
             .run()
 
         val failures = results.failed()
-        assertTrue(failures.isNotEmpty(), "Expected the quick test to fail")
-        val message = failures.first().error?.message
-
-        assertNotNull(message)
-        assertTrue(message!!.contains("http://kotlin.directory"))
-        assertTrue(message.contains("https://repo1.maven.org/maven2/"))
+        assertTrue(failures.isEmpty(), "Expected no failures")
+        assertTrue(results.passed().size == 1, "Expected the quick test to pass")
     }
 }
 

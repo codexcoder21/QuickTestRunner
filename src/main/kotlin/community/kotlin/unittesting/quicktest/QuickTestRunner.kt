@@ -159,9 +159,8 @@ private fun runBuildRule(workspaceDir: File, rule: String, repositories: List<St
         val parts = rule.split(":")
         val dep = Dependency.of(parts[0], parts[1], parts[2])
         val fetch = Fetch.create()
-        repositories.forEach { repoUrl ->
-            fetch.addRepositories(coursierapi.MavenRepository.of(repoUrl))
-        }
+        val coursierRepositories = repositories.map { repoUrl -> MavenRepository.of(repoUrl) }.toTypedArray()
+        fetch.withRepositories(*coursierRepositories)
         fetch.addDependencies(dep)
         try {
             return fetch.fetch()
