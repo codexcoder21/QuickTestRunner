@@ -1,6 +1,7 @@
 package org.example
 
 import community.kotlin.unittesting.quicktest.QuickTestRunner
+import community.kotlin.unittesting.quicktest.TestStatus
 import community.kotlin.unittesting.quicktest.workspace
 import kotlin.test.*
 import java.io.File
@@ -14,7 +15,7 @@ class RepositoryAnnotationTest {
             .workspace(root)
             .run()
 
-        val failures = results.failed()
+        val failures = results.getResults(TestStatus.FAILURE)
         assertTrue(failures.isNotEmpty(), "Expected the quick test to fail")
         val message = failures.first().error?.message
 
@@ -30,7 +31,7 @@ class RepositoryAnnotationTest {
             .workspace(root)
             .run()
 
-        val failures = results.failed()
+        val failures = results.getResults(TestStatus.FAILURE)
         assertTrue(failures.isNotEmpty(), "Expected the quick test to fail")
         val message = failures.first().error?.message
 
@@ -46,9 +47,9 @@ class RepositoryAnnotationTest {
             .workspace(root)
             .run()
 
-        val failures = results.failed()
+        val failures = results.getResults(TestStatus.FAILURE)
         assertTrue(failures.isEmpty(), "Expected no failures")
-        assertTrue(results.passed().size == 1, "Expected the quick test to pass")
+        assertTrue(results.getResults(TestStatus.SUCCESS).size == 1, "Expected the quick test to pass")
     }
 }
 

@@ -12,6 +12,7 @@ import org.apache.commons.text.StringEscapeUtils
 import okio.FileSystem
 import okio.Path
 import okio.buffer
+import community.kotlin.unittesting.quicktest.TestStatus
 import org.jetbrains.kotlin.cli.common.arguments.validateArguments
 import org.jetbrains.kotlin.cli.common.messages.MessageRenderer
 import org.jetbrains.kotlin.config.Services
@@ -65,7 +66,7 @@ object QuickTestUtils {
         fs.sink(file).buffer().use { out ->
             out.writeUtf8("<tests>\n")
             results.forEach { r ->
-                if (r.success) {
+                if (r.status == TestStatus.SUCCESS) {
                     out.writeUtf8("  <test file=\"${r.file}\" name=\"${r.function}\" success=\"true\"/>\n")
                 } else {
                     val stack = r.error?.stackTraceToString()?.xmlEscape()
@@ -83,8 +84,9 @@ object QuickTestUtils {
             out.writeUtf8("<html><body><table>\n")
             out.writeUtf8("<tr><th>File</th><th>Function</th><th>Status</th><th>Stacktrace</th></tr>\n")
             results.forEach { r ->
-                val stack = if (r.success) "" else r.error?.stackTraceToString()?.htmlEscape()
-                out.writeUtf8("<tr><td>${r.file}</td><td>${r.function}</td><td>${if (r.success) "PASSED" else "FAILED"}</td><td><pre>${stack}</pre></td></tr>\n")
+                val stack = if (r.status == TestStatus.SUCCESS) "" else r.error?.stackTraceToString()?.htmlEscape()
+                val status = if (r.status == TestStatus.SUCCESS) "PASSED" else "FAILED"
+                out.writeUtf8("<tr><td>${r.file}</td><td>${r.function}</td><td>${status}</td><td><pre>${stack}</pre></td></tr>\n")
             }
             out.writeUtf8("</table></body></html>\n")
         }
@@ -93,7 +95,7 @@ object QuickTestUtils {
     private fun writePlain(results: List<TestResult>, fs: FileSystem, file: Path) {
         fs.sink(file).buffer().use { out ->
             results.forEach { r ->
-                if (r.success) {
+                if (r.status == TestStatus.SUCCESS) {
                     out.writeUtf8("PASSED ${r.file}:${r.function}\n")
                 } else {
                     out.writeUtf8("FAILED ${r.file}:${r.function}\n")

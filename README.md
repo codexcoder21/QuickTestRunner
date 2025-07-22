@@ -44,6 +44,7 @@ You can also run tests directly from Kotlin code using `QuickTestRunner`:
 
 ```kotlin
 import community.kotlin.unittesting.quicktest.QuickTestRunner
+import community.kotlin.unittesting.quicktest.TestStatus
 import java.io.File
 
 val results = QuickTestRunner()
@@ -54,12 +55,13 @@ val results = QuickTestRunner()
     .run()
 
 results.results.forEach { r ->
-    val status = if (r.success) "PASSED" else "FAILED"
+    val status = if (r.status == TestStatus.SUCCESS) "PASSED" else "FAILED"
     println("$status ${r.file}:${r.function}")
 }
 ```
 
 `QuickTestRunResults` provides access to the individual `TestResult` entries.
+Use `getResults()` to optionally filter results by `TestStatus`.
 
 ## Building and testing
 

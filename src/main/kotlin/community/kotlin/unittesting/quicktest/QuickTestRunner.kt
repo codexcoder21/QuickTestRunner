@@ -21,6 +21,8 @@ import okio.Path.Companion.toOkioPath
 import okio.Path.Companion.toPath
 import okio.buffer
 
+import community.kotlin.unittesting.quicktest.TestStatus
+
 /** Entry point and core runner for quick tests. */
 class QuickTestRunner {
 
@@ -70,7 +72,7 @@ class QuickTestRunner {
             if (logPath != null) runner.logFile(File(logPath))
             val results = runner.run()
             results.results.forEach { result ->
-                if (result.success) {
+                if (result.status == TestStatus.SUCCESS) {
                     println("PASSED ${result.file}:${result.function}")
                 } else {
                     println("FAILED ${result.file}:${result.function} -> ${result.error?.message}")
@@ -118,13 +120,13 @@ class QuickTestRunner {
                 clazz.declaredMethods.filter { it.parameterCount == 0 }.forEach { method ->
                     try {
                         method.invoke(null)
-                        results += TestResult(file.toOkioPath(), method.name, true, null)
+                        results += TestResult(file.toOkioPath(), method.name, TestStatus.SUCCESS, null)
                     } catch (t: Throwable) {
-                        results += TestResult(file.toOkioPath(), method.name, false, t.cause ?: t)
+                        results += TestResult(file.toOkioPath(), method.name, TestStatus.FAILURE, t.cause ?: t)
                     }
                 }
                 } catch (t: Throwable) {
-                    results += TestResult(file.toOkioPath(), "<build>", false, t)
+                    results += TestResult(file.toOkioPath(), "<build>", TestStatus.FAILURE, t)
                 }
             }
             return results
