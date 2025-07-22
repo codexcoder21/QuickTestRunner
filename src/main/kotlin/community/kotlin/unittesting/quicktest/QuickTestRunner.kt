@@ -14,6 +14,7 @@ import java.net.URLClassLoader
 import java.nio.file.Files
 import coursierapi.Dependency
 import coursierapi.Fetch
+import coursierapi.MavenRepository
 import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toOkioPath
@@ -90,10 +91,12 @@ class QuickTestRunner {
                     }
                 }
                 val buildRules = getBuildRules(file)
+                val repositories = getRepositories(file)
+                    .ifEmpty { listOf("http://kotlin.directory", "https://repo1.maven.org/maven2/") }
 
                 val cpFiles = buildRules.flatMap { buildRule ->
                     val wsRoot = workspaceFs.canonicalize(workspaceRoot).toFile()
-                    runBuildRule(wsRoot, buildRule)
+                    runBuildRule(wsRoot, buildRule, repositories)
                 } + System.getProperty("java.class.path")  // TODO: Should not be passing in system/parent classpath once we can import artifacts via maven.
                     .split(File.pathSeparator)
                     .filter { it.isNotBlank() }
@@ -134,12 +137,33 @@ private fun getBuildRules(file: File): List<String> {
     }
 }
 
-private fun runBuildRule(workspaceDir: File, rule: String): List<File> {
+private fun getRepositories(file: File): List<String> {
+    return withKtFile(file) { ktFile ->
+        ktFile.annotationEntries.filter {
+            it.shortName!!.identifier == "build.kotlin.withartifact.WithRepository" ||
+                    it.shortName!!.identifier == "WithRepository"
+        }.map { annotationEntry ->
+            annotationEntry.valueArgumentList!!.arguments.single().text.removeSurrounding("\"")
+        }
+    }
+}
+
+private fun runBuildRule(workspaceDir: File, rule: String, repositories: List<String>): List<File> {
     val mavenPattern = Regex("^[^:]+:[^:]+:[^:]+$")
     if (mavenPattern.matches(rule)) {
         val parts = rule.split(":")
         val dep = Dependency.of(parts[0], parts[1], parts[2])
-        return Fetch.create().addDependencies(dep).fetch()
+        val fetch = Fetch.create()
+        repositories.forEach { repoUrl ->
+            fetch.addRepositories(coursierapi.MavenRepository.of(repoUrl))
+        }
+        fetch.addDependencies(dep)
+        try {
+            return fetch.fetch()
+        } catch (e: Exception) {
+            val reposString = repositories.joinToString(", ")
+            throw RuntimeException("Failed to fetch artifact $rule using maven repositories: $reposString", e)
+        }
     }
 
     val workspace = Workspace(workspaceDir)
