@@ -78,9 +78,12 @@ class QuickTestRunner {
             val runner = QuickTestRunner().workspace(File(workspacePath))
             if (logPath != null) runner.logFile(File(logPath))
             val results = Effective<QuickTestRunResults> {
+                handler { e: PackageWarningEffect ->
+                    System.err.println(e.message)
+                }
                 handler { e: NotificationEffect ->
-                    if (e is PackageWarningEffect) {
-                        System.err.println(e.message)
+                    if (verbose || (e is DiagnosticEffect && (e.diagnostic.severity == DiagnosticSeverity.ERROR || e.diagnostic.severity == DiagnosticSeverity.WARNING))) {
+                        e.printTinyTrace()
                     }
                 }
                 runner.run()
@@ -174,7 +177,7 @@ class QuickTestRunner {
                     }
                 }
                 } catch (t: Throwable) {
-                    results += TestResult(file.toOkioPath(), "<build>", packageName, TestStatus.FAILURE, t)
+                    results += TestResult(file.toOkioPath(), "<failed to compile kts file: ${file.absolutePath}>", packageName, TestStatus.FAILURE, t)
                 }
             }
             return results
@@ -243,14 +246,7 @@ private fun runBuildRule(workspaceDir: File, rule: String, repositories: List<St
 
     val workspace = Workspace(workspaceDir)
     val out = kotlin.io.path.createTempFile("qtbuild", null).toFile().apply { delete() }
-    Effective {
-        handler { e: NotificationEffect ->
-            if (e is DiagnosticEffect && (e.diagnostic.severity == DiagnosticSeverity.ERROR || e.diagnostic.severity == DiagnosticSeverity.WARNING)) {
-                e.printTinyTrace()
-            }
-        }
-        workspace.execute(rule, out)
-    }
+    workspace.execute(rule, out)
     val resultFile = out
     if (resultFile.isDirectory) {
         val jar = resultFile.walkTopDown().firstOrNull { it.isFile && it.name.endsWith(".jar") }

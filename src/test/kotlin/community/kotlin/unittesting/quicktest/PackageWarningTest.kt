@@ -17,10 +17,8 @@ class PackageWarningTest {
         val root = File("src/test/resources/ExampleTestProjectWithBuildScriptAndTests")
         val channel = Channel<String>(1)
         Effective<Unit> {
-            handler { e: NotificationEffect ->
-                if (e is PackageWarningEffect) {
-                    channel.trySend(e.message!!)
-                }
+            handler { e: PackageWarningEffect ->
+                channel.trySend(e.message!!)
             }
             QuickTestRunner()
                 .workspace(root)
