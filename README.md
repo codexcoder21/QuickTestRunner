@@ -67,6 +67,9 @@ Use `getResults()` to optionally filter results by `TestStatus`.
 
 ## Building and testing
 
+The project is built with JDK 17 using Gradle's toolchain support. Gradle will
+automatically download the JDK if it is not already installed.
+
 Run the following command to build the project and execute unit tests:
 
 ```
