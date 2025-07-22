@@ -94,6 +94,8 @@ class QuickTestRunner {
                 val repositories = getRepositories(file)
                     .ifEmpty { listOf("http://kotlin.directory", "https://repo1.maven.org/maven2/") }
 
+                try {
+
                 val cpFiles = buildRules.flatMap { buildRule ->
                     val wsRoot = workspaceFs.canonicalize(workspaceRoot).toFile()
                     runBuildRule(wsRoot, buildRule, repositories)
@@ -120,6 +122,9 @@ class QuickTestRunner {
                     } catch (t: Throwable) {
                         results += TestResult(file.toOkioPath(), method.name, false, t.cause ?: t)
                     }
+                }
+                } catch (t: Throwable) {
+                    results += TestResult(file.toOkioPath(), "<build>", false, t)
                 }
             }
             return results
