@@ -48,11 +48,6 @@ class QuickTestRunner {
 
     fun run(): QuickTestRunResults {
         val results = Effective<List<TestResult>> {
-            handler { e: NotificationEffect ->
-                if (e is PackageWarningEffect) {
-                    System.err.println(e.message)
-                }
-            }
             runTests(workspaceFs, workspace)
         }
         val log = logFile
@@ -82,7 +77,14 @@ class QuickTestRunner {
             val verbose = cmd.hasOption("verbose")
             val runner = QuickTestRunner().workspace(File(workspacePath))
             if (logPath != null) runner.logFile(File(logPath))
-            val results = runner.run()
+            val results = Effective<QuickTestRunResults> {
+                handler { e: NotificationEffect ->
+                    if (e is PackageWarningEffect) {
+                        System.err.println(e.message)
+                    }
+                }
+                runner.run()
+            }
             val outputResults = if (verbose) results.results else results.results.filter { it.status != TestStatus.SUCCESS }
             outputResults.forEach { result ->
                 val qualifiedName = if (result.packageName.isNotEmpty()) "${result.packageName}.${result.function}" else result.function
