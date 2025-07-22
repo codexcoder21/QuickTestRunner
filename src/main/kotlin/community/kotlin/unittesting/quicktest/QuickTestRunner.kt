@@ -85,11 +85,15 @@ class QuickTestRunner {
                 }
                 runner.run()
             }
-            val outputResults = if (verbose) results.results else results.results.filter { it.status != TestStatus.SUCCESS }
+            val outputResults = if (verbose) results.results else results.results.filter {
+                it.status != TestStatus.SUCCESS && it.status != TestStatus.DISABLED
+            }
             outputResults.forEach { result ->
                 val qualifiedName = if (result.packageName.isNotEmpty()) "${result.packageName}.${result.function}" else result.function
                 if (result.status == TestStatus.SUCCESS) {
                     println("PASSED $qualifiedName")
+                } else if (result.status == TestStatus.DISABLED) {
+                    println("DISABLED $qualifiedName")
                 } else {
                     println("FAILED $qualifiedName -> ${result.error?.message}")
                     if (verbose) {
@@ -99,15 +103,18 @@ class QuickTestRunner {
             }
 
             val successCount = results.results.count { it.status == TestStatus.SUCCESS }
-            val total = results.results.size
-            val failureCount = total - successCount
+            val failureCount = results.results.count { it.status == TestStatus.FAILURE }
+            val disabledCount = results.results.count { it.status == TestStatus.DISABLED }
+            val total = results.results.size - disabledCount
             if (failureCount == 0) {
                 println("ALL TESTS PASSED (${successCount}/${total} tests completed successfully)")
-                exitProcess(0)
             } else {
                 println("TEST FAILURES: ${failureCount} failures.  ${successCount} success. (only ${successCount}/${total} tests completed successfully)")
-                exitProcess(1)
             }
+            if (disabledCount > 0) {
+                println("NOTE: ${disabledCount} unit tests disabled")
+            }
+            exitProcess(if (failureCount == 0) 0 else 1)
         }
 
         internal fun runTests(workspaceFs: FileSystem, workspaceRoot: Path): List<TestResult> {
@@ -153,12 +160,17 @@ class QuickTestRunner {
                 val loaderUrls = arrayOf(outputDir.toNioPath().toUri().toURL()) + cpFiles.map { it.toURI().toURL() }.toTypedArray()
                 val loader = URLClassLoader(loaderUrls, ClassLoader.getSystemClassLoader())
                 val clazz = loader.loadClass(className)
+                val disabledAnnotation = Class.forName("build.kotlin.annotations.Disabled").asSubclass(Annotation::class.java)
                 clazz.declaredMethods.filter { it.parameterCount == 0 }.forEach { method ->
-                    try {
-                        method.invoke(null)
-                        results += TestResult(file.toOkioPath(), method.name, packageName, TestStatus.SUCCESS, null)
-                    } catch (t: Throwable) {
-                        results += TestResult(file.toOkioPath(), method.name, packageName, TestStatus.FAILURE, t.cause ?: t)
+                    if (method.getAnnotation(disabledAnnotation) != null) {
+                        results += TestResult(file.toOkioPath(), method.name, packageName, TestStatus.DISABLED, null)
+                    } else {
+                        try {
+                            method.invoke(null)
+                            results += TestResult(file.toOkioPath(), method.name, packageName, TestStatus.SUCCESS, null)
+                        } catch (t: Throwable) {
+                            results += TestResult(file.toOkioPath(), method.name, packageName, TestStatus.FAILURE, t.cause ?: t)
+                        }
                     }
                 }
                 } catch (t: Throwable) {
