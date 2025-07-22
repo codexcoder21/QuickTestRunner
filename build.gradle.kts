@@ -40,6 +40,7 @@ dependencies {
     implementation("io.get-coursier:interface:1.0.28")
     testImplementation(kotlin("test"))
     testImplementation("org.eclipse.jdt:ecj:3.33.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
 }
 
 tasks.test {
