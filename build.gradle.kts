@@ -3,6 +3,10 @@ plugins {
     application
 }
 
+kotlin {
+    jvmToolchain(21)
+}
+
 group = "community.kotlin.unittesting.quicktest"
 version = "1.0-SNAPSHOT"
 
