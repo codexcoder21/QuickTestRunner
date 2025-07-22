@@ -22,6 +22,7 @@ import okio.Path.Companion.toPath
 import okio.buffer
 
 import community.kotlin.unittesting.quicktest.TestStatus
+import org.jetbrains.kotlin.psi.KtNamedFunction
 import kotlin.system.exitProcess
 
 /** Entry point and core runner for quick tests. */
@@ -115,6 +116,7 @@ class QuickTestRunner {
                     .ifEmpty { listOf("http://kotlin.directory/", "https://repo1.maven.org/maven2/") }
 
                 try {
+                    validateTestFile(file)
 
                     val wsRoot = workspaceFs.canonicalize(workspaceRoot).toFile()
                     val cpFiles = buildRules.flatMap { buildRule ->
@@ -208,4 +210,17 @@ private fun runBuildRule(workspaceDir: File, rule: String, repositories: List<St
         return listOf(jar)
     }
     return listOf(resultFile)
+}
+
+private fun validateTestFile(file: File) {
+    withKtFile(file) { ktFile ->
+        val topLevel = ktFile.declarations.flatMap { decl ->
+            if (decl is org.jetbrains.kotlin.psi.KtScript) decl.declarations else listOf(decl)
+        }
+        val invalid = topLevel.filterNot { it is KtNamedFunction }
+        if (invalid.isNotEmpty()) {
+            val names = invalid.joinToString(", ") { it::class.simpleName ?: "unknown" }
+            throw IllegalArgumentException("test.kts may only contain top-level functions. Found: $names")
+        }
+    }
 }
