@@ -94,23 +94,14 @@ class QuickTestRunner {
                 }
                 val buildRules = getBuildRules(file)
                 val repositories = getRepositories(file)
-                    .ifEmpty { listOf("http://kotlin.directory", "https://repo1.maven.org/maven2/") }
+                    .ifEmpty { listOf("http://kotlin.directory/", "https://repo1.maven.org/maven2/") }
 
                 try {
 
-                val cpFiles = buildRules.flatMap { buildRule ->
                     val wsRoot = workspaceFs.canonicalize(workspaceRoot).toFile()
-                    runBuildRule(wsRoot, buildRule, repositories)
-                } + System.getProperty("java.class.path")  // TODO: Should not be passing in system/parent classpath once we can import artifacts via maven.
-                    .split(File.pathSeparator)
-                    .filter { it.isNotBlank() }
-                    .map { File(it) }
-                    .filter { !it.absolutePath.contains("QuickTest") }
-                    .filter { !it.absolutePath.contains("2.2.0") }
-
-                cpFiles.forEach {
-                    println(it.absolutePath)
-                }
+                    val cpFiles = buildRules.flatMap { buildRule ->
+                        runBuildRule(wsRoot, buildRule, repositories)
+                    } + getBuildAnnotationsJar()
 
                 QuickTestUtils.compileKotlin(listOf(ktPath.toFile()), cpFiles, outputDir.toNioPath().toFile())
                 val className = file.name.substringBeforeLast('.').replaceFirstChar { it.uppercase() } + "Kt"
@@ -134,6 +125,16 @@ class QuickTestRunner {
     }
 }
 
+// TODO: Should provide annotations from an embedded jar (instead of fetching from maven) in order to enable offline execution.
+private fun getBuildAnnotationsJar(): List<File> {
+    val parts = "build.kotlin.withartifact:build-kotlin-withartifact:0.0.1".split(":")
+    val dep = Dependency.of(parts[0], parts[1], parts[2])
+    val fetch = Fetch.create()
+    val coursierRepositories = listOf("http://kotlin.directory").map { repoUrl -> MavenRepository.of(repoUrl) }.toTypedArray()
+    fetch.withRepositories(*coursierRepositories)
+    fetch.withDependencies(dep.withTransitive(false))
+    return fetch.fetch()
+}
 
 private fun getBuildRules(file: File): List<String> {
     return withKtFile(file) { ktFile ->
