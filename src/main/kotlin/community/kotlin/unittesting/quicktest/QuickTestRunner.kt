@@ -23,6 +23,7 @@ import okio.Path.Companion.toPath
 import okio.buffer
 
 import community.kotlin.unittesting.quicktest.TestStatus
+import community.kotlin.unittesting.quicktest.MisnamedTestFileEffect
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import kotlin.system.exitProcess
 
@@ -81,6 +82,9 @@ class QuickTestRunner {
                 handler { e: PackageWarningEffect ->
                     System.err.println(e.message)
                 }
+                handler { e: MisnamedTestFileEffect ->
+                    System.err.println(e.message)
+                }
                 handler { e: NotificationEffect ->
                     if (verbose || (e is DiagnosticEffect && (e.diagnostic.severity == DiagnosticSeverity.ERROR || e.diagnostic.severity == DiagnosticSeverity.WARNING))) {
                         e.printTinyTrace()
@@ -122,7 +126,11 @@ class QuickTestRunner {
 
         internal fun runTests(workspaceFs: FileSystem, workspaceRoot: Path): List<TestResult> {
             val results = mutableListOf<TestResult>()
-            workspaceRoot.toFile().walkTopDown().toList().filter { it.name == "test.kts" }.forEach { file ->
+            val allFiles = workspaceRoot.toFile().walkTopDown().toList()
+            allFiles.filter { it.name == "tests.kts" }.forEach { file ->
+                toss(MisnamedTestFileEffect(file.absolutePath))
+            }
+            allFiles.filter { it.name == "test.kts" }.forEach { file ->
                 val tempDir = Files.createTempDirectory("qtcompile")
                 val outputDir = tempDir.toOkioPath()
 
