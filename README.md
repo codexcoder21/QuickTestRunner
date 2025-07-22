@@ -1,8 +1,8 @@
 # QuickTestRunner
 
-QuickTestRunner is a simple tool for executing small test files called `quicktest.kts`.
+QuickTestRunner is a simple tool for executing small test files called `test.kts`.
 
-A `quicktest.kts` file contains top level Kotlin functions. Each function is treated as an
+A `test.kts` file contains top level Kotlin functions. Each function is treated as an
 individual unit test. Files are compiled using the embedded Kotlin compiler and executed
 within the same JVM – the `.kts` extension is only a name and no Kotlin scripting
 frameworks are used.
@@ -22,7 +22,7 @@ Use `--verbose` to print results for all tests.
 If the log file ends with `.xml` an XML report is created. If it ends with `.html`,
 the report will be an HTML file.
 
-The program recursively searches the provided directory for every `quicktest.kts` file,
+The program recursively searches the provided directory for every `test.kts` file,
 compiles them and runs all top level functions. A test passes if it completes without
 throwing an exception.
 

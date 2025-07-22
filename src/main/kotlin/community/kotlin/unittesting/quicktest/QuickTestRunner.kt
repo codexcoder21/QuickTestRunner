@@ -100,7 +100,7 @@ class QuickTestRunner {
 
         internal fun runTests(workspaceFs: FileSystem, workspaceRoot: Path): List<TestResult> {
             val results = mutableListOf<TestResult>()
-            workspaceRoot.toFile().walkTopDown().toList().filter { it.name == "quicktest.kts" }.forEach { file ->
+            workspaceRoot.toFile().walkTopDown().toList().filter { it.name == "test.kts" }.forEach { file ->
                 val tempDir = Files.createTempDirectory("qtcompile")
                 val outputDir = tempDir.toOkioPath()
 
