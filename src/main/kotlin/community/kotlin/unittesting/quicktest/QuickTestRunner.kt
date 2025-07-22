@@ -266,5 +266,15 @@ private fun validateTestFile(file: File) {
             val names = invalid.joinToString(", ") { it::class.simpleName ?: "unknown" }
             throw IllegalArgumentException("test.kts may only contain top-level functions. Found: $names")
         }
+
+        val nonUnit = topLevel.filterIsInstance<KtNamedFunction>().filter {
+            it.typeReference != null || !it.hasBlockBody()
+        }
+        if (nonUnit.isNotEmpty()) {
+            val names = nonUnit.joinToString(", ") { it.name ?: "<anonymous>" }
+            throw IllegalArgumentException(
+                "test.kts functions must not declare return types and must use block bodies. Offending functions: $names"
+            )
+        }
     }
 }

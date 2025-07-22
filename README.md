@@ -4,8 +4,7 @@ QuickTestRunner is a simple tool for executing small test files called `test.kts
 
 A `test.kts` file contains only top level Kotlin **functions**. Each function is treated as an
 individual unit test. Files are compiled using the embedded Kotlin compiler and executed
-within the same JVM – the `.kts` extension is only a name and no Kotlin scripting
-frameworks are used.
+within the same JVM – the `.kts` extension is only a name and no Kotlin scripting frameworks are used. Test functions must have block bodies and may not declare a return type – they are always `Unit` functions.
 
 ## Usage
 
@@ -24,8 +23,9 @@ the report will be an HTML file.
 
 The program recursively searches the provided directory for every `test.kts` file,
 compiles them and runs all top level functions. Any other top level declarations
-will cause the test run to fail. A test passes if it completes without
-throwing an exception.
+will cause the test run to fail. A test passes if it completes without throwing
+an exception. Functions that declare a return type or use expression bodies are
+rejected.
 
 ### Using the fat jar
 
