@@ -15,7 +15,13 @@ enum class TestStatus {
 }
 
 /** Result of running quick tests. */
-data class TestResult(val file: Path, val function: String, val status: TestStatus, val error: Throwable?)
+data class TestResult(
+    val file: Path,
+    val function: String,
+    val packageName: String,
+    val status: TestStatus,
+    val error: Throwable?
+)
 
 class QuickTestRunResults(val results: List<TestResult>) {
     fun getResults(status: TestStatus? = null): List<TestResult> =
