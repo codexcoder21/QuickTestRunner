@@ -22,6 +22,7 @@ import okio.Path.Companion.toPath
 import okio.buffer
 
 import community.kotlin.unittesting.quicktest.TestStatus
+import kotlin.system.exitProcess
 
 /** Entry point and core runner for quick tests. */
 class QuickTestRunner {
@@ -60,6 +61,7 @@ class QuickTestRunner {
                     .build())
                 addOption(Option.builder().longOpt("log").hasArg().desc("Log file to dump results").build())
                 addOption(Option.builder().longOpt("workspace").hasArg().desc("Workspace root directory").build())
+                addOption(Option.builder().longOpt("verbose").desc("Print all test results").build())
             }
             val cmd = DefaultParser().parse(options, args)
             if (cmd.hasOption("help")) {
@@ -68,15 +70,28 @@ class QuickTestRunner {
             }
             val logPath = cmd.getOptionValue("log")
             val workspacePath = cmd.getOptionValue("workspace", ".")
+            val verbose = cmd.hasOption("verbose")
             val runner = QuickTestRunner().workspace(File(workspacePath))
             if (logPath != null) runner.logFile(File(logPath))
             val results = runner.run()
-            results.results.forEach { result ->
+            val outputResults = if (verbose) results.results else results.results.filter { it.status != TestStatus.SUCCESS }
+            outputResults.forEach { result ->
                 if (result.status == TestStatus.SUCCESS) {
                     println("PASSED ${result.file}:${result.function}")
                 } else {
                     println("FAILED ${result.file}:${result.function} -> ${result.error?.message}")
                 }
+            }
+
+            val successCount = results.results.count { it.status == TestStatus.SUCCESS }
+            val total = results.results.size
+            val failureCount = total - successCount
+            if (failureCount == 0) {
+                println("ALL TESTS PASSED (${successCount}/${total} tests completed successfully)")
+                exitProcess(0)
+            } else {
+                println("TEST FAILURES: ${failureCount} failures.  ${successCount} success. (only ${successCount}/${total} tests completed successfully)")
+                exitProcess(1)
             }
         }
 
