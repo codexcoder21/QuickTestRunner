@@ -5,6 +5,16 @@ plugins {
     application
 }
 
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
+}
+
+kotlin {
+    jvmToolchain(17)
+}
+
 group = "community.kotlin.unittesting.quicktest"
 version = "1.0-SNAPSHOT"
 
