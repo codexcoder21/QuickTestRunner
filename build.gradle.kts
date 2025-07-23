@@ -1,7 +1,7 @@
 import java.net.URI
 
 plugins {
-    kotlin("jvm") version "2.2.0"
+    kotlin("jvm") version "1.8.0"
     application
 }
 
@@ -33,7 +33,8 @@ repositories {
 dependencies {
     implementation("commons-cli:commons-cli:1.5.0")
     implementation("org.apache.commons:commons-text:1.10.0")
-    implementation("com.squareup.okio:okio:3.6.0")
+    implementation("com.squareup.okio:okio:3.4.0")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.8.0")
     implementation("kompile-cli:kompile-cli:0.0.2")
     implementation("community.kotlin.psi.annotationutils:community-kotlin-psi-annotationutils:0.0.1")
     implementation("build.kotlin.withartifact:build-kotlin-withartifact:0.0.1")
@@ -41,7 +42,7 @@ dependencies {
     implementation("io.get-coursier:interface:1.0.28")
     testImplementation(kotlin("test"))
     testImplementation("org.eclipse.jdt:ecj:3.33.0")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
 }
 
 tasks.test {
@@ -63,6 +64,12 @@ val fatJar by tasks.registering(Jar::class) {
     manifest {
         attributes["Main-Class"] = "community.kotlin.unittesting.quicktest.QuickTestRunner"
     }
+    exclude("module-info.class")
+    exclude("META-INF/versions/*/module-info.class")
+    exclude("META-INF/INDEX.LIST")
+    exclude("META-INF/*.SF")
+    exclude("META-INF/*.DSA")
+    exclude("META-INF/*.RSA")
     from(sourceSets.main.get().output)
     from("README.md")
     dependsOn(configurations.runtimeClasspath)
@@ -105,3 +112,4 @@ tasks.withType<Test>().configureEach {
 tasks.withType<JavaExec>().configureEach {
     applyProxy()
 }
+
